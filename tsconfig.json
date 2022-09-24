@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "outDir": "./lib",
+    "sourceMap": true,
+    "noImplicitAny": true,
+    "module": "ES6",
+    "target": "ES6",
+    "lib": ["es6", "dom", "es2021"],
+    "allowJs": true,
+    "strict": true,
+    "declaration": true,
+    "declarationMap": true,
+    "declarationDir": "./lib/types",
+    "moduleResolution": "NodeNext" // used in order to enforce specifying .js on relative imports
+  },
+  "include": ["src/*"],
+  "exclude": ["node_modules"]
+}
