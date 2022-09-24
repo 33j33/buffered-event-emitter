@@ -12,13 +12,6 @@
     "require": "./lib/bundles/bundle.umd.js",
     "import": "./lib/bundles/bundle.esm.mjs"
   },
-  "typesVersions": {
-    "*": {
-      "bundle.esm": [
-        "libs/types/bufferedEventEmitter.d.ts"
-      ]
-    }
-  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build:esm": "tsc --module es6 --outDir lib/esm",
@@ -28,7 +21,7 @@
   },
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "git+https://github.com/33j33/buffered-event-emitter.git"
   },
   "keywords": [
     "event-emitter",
