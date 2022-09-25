@@ -1,6 +1,6 @@
 {
   "name": "buffered-event-emitter",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Event emitter that supports buffering and queueing events.",
   "main": "lib/bundle.esm.mjs",
   "module": "lib/bundle.umd.js",
