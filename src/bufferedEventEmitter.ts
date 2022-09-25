@@ -50,12 +50,20 @@ export class BufferedEventEmitter {
     this._queue = [];
   }
 
+  /**
+   *
+   * Synchronously invokes each of the listeners registered for the event named eventName in the order they were registered.
+   * Returns true if any listener was invoked, false otherwise.
+   * @param eventName - event name
+   *  @returns event emitted status
+   */
   public emit(eventName: string): boolean;
   /**
    * Synchronously invokes each of the listeners registered for the event named eventName with eventData as argument, in the order they were registered.
    * Returns true if any listener was invoked, false otherwise.
-   * @param eventName
-   * @param data
+   * @param eventName - event name
+   * @param data - argument to be passed to be listener when invoking it
+   * @returns event emitted status
    */
   public emit(eventName: string, data: EventData): boolean;
   emit(eventName: string, data?: EventData): boolean {
@@ -174,13 +182,18 @@ export class BufferedEventEmitter {
     return true;
   }
 
+  /**
+   * Flush all buffered events for listeners for given event name.
+   * @param eventName
+   * @returns true if any events were emitted, else false
+   */
   public flush(eventName: string): boolean;
   /**
-   * Flush all buffered events for given eventName if only eventName is provided
-   * else for given combination of event name, listener and options.
+   * Flush all buffered events for given combination of event name, listener and options.
    * @param eventName
    * @param listener
    * @param options
+   * @returns true if any events were emitted, else false
    */
   public flush(
     eventName: string,
