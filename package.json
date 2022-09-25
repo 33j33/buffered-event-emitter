@@ -1,16 +1,17 @@
 {
   "name": "buffered-event-emitter",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Event emitter that supports buffering and queueing events.",
-  "main": "lib/bundles/bundle.esm.mjs",
-  "module": "lib/bundles/bundle.umd.js",
+  "main": "lib/bundle.esm.mjs",
+  "module": "lib/bundle.umd.js",
   "types": "lib/types/index.d.ts",
   "files": [
-    "lib"
+    "lib/bundles",
+    "lib/types"
   ],
   "exports": {
-    "require": "./lib/bundles/bundle.umd.js",
-    "import": "./lib/bundles/bundle.esm.mjs"
+    "require": "./lib/bundle.umd.js",
+    "import": "./lib/bundle.esm.mjs"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -40,6 +41,7 @@
   "license": "MIT",
   "devDependencies": {
     "rollup": "^2.79.0",
+    "rollup-plugin-terser": "^7.0.2",
     "typescript": "^4.8.2"
   }
 }

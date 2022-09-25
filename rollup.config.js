@@ -1,16 +1,33 @@
+import { terser } from "rollup-plugin-terser";
+
 export default {
     input: 'lib/esm/index.js',
     output: [
         {
-            file: 'lib/bundles/bundle.esm.mjs',
+            file: 'lib/bundle.esm.mjs',
             format: 'esm',
-            sourcemap: true
+            exports: "named"
         },
         {
-            file: 'lib/bundles/bundle.umd.js',
+            file: 'lib/bundle.esm.min.mjs',
+            format: 'esm',
+            sourcemap: true,
+            exports: "named",
+            plugins: [terser()],
+        },
+        {
+            file: 'lib/bundle.umd.js',
             format: 'umd',
             name: 'BufferedEventEmitter',
-            sourcemap: true
+            exports: "named",
         },
+        {
+            file: 'lib/bundle.umd.min.js',
+            format: 'umd',
+            name: 'BufferedEventEmitter',
+            sourcemap: true,
+            exports: "named",
+            plugins: [terser()],
+        }
     ],
 }
