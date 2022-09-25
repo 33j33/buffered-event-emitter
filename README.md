@@ -1,8 +1,8 @@
 # Buffered Event Emitter
 
-- supports buffering events with configurable buffer capacity.
-- supports pausing and resuming event emission.
-- has a logger for logging `emit` and `subscribe` actions.
+- Buffer events with configurable buffer capacity.
+- Pause and resume event emission.
+- Log event emission, adding and removing listeners (`emit`, `on`, `off` actions).
 - based on [node events api](https://nodejs.org/api/events.html)
 
 ## Install

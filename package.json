@@ -6,8 +6,7 @@
   "module": "lib/bundle.umd.js",
   "types": "lib/types/index.d.ts",
   "files": [
-    "lib/bundles",
-    "lib/types"
+    "lib"
   ],
   "exports": {
     "require": "./lib/bundle.umd.js",
