@@ -50,9 +50,15 @@ export class BufferedEventEmitter {
     this._queue = [];
   }
 
-  public emit(eventName: string): Boolean;
-  public emit(eventName: string, data: EventData): Boolean;
-  emit(eventName: string, data?: EventData): Boolean {
+  public emit(eventName: string): boolean;
+  /**
+   * Synchronously invokes each of the listeners registered for the event named eventName with eventData as argument, in the order they were registered.
+   * Returns true if any listener was invoked, false otherwise.
+   * @param eventName
+   * @param data
+   */
+  public emit(eventName: string, data: EventData): boolean;
+  emit(eventName: string, data?: EventData): boolean {
     if (!this._events[eventName] || this._events[eventName].length === 0) {
       return false;
     }
@@ -82,7 +88,7 @@ export class BufferedEventEmitter {
           event.fn(event.bucket);
           didEmit = true;
           didAnyEmit = true;
-          this._logger("emit", eventName, event.bucket);
+          this.logger("emit", eventName, event.bucket);
           event.bucket = [];
         }
       } else {
@@ -90,7 +96,7 @@ export class BufferedEventEmitter {
         event.fn(data);
         didEmit = true;
         didAnyEmit = true;
-        this._logger("emit", eventName, data);
+        this.logger("emit", eventName, data);
       }
 
       // filter out once emitted events
@@ -102,36 +108,61 @@ export class BufferedEventEmitter {
     return didAnyEmit;
   }
 
+  /**
+   * Adds an event listener for given event name and options.
+   * If the combination of listener and options is already for the given event name the listener is not added a second time.
+   * @param eventName - Name of the event, listener will be added to
+   * @param listener - Function that will be called each time event is emitted
+   * @param options - Config options for listener
+   * @returns listener status if it was added or not
+   */
   on(
     eventName: string,
     listener: Listener,
     options: ListenerOptions = {}
-  ): Boolean {
+  ): boolean {
     if (!this._events[eventName]) {
       this._events[eventName] = [];
     }
     let index = getListenerIdx(this._events[eventName], listener, options);
     if (index !== -1) return false;
     this._events[eventName].push(new EventProp(listener, false, options));
-    this._logger("subscribe", eventName, listener);
+    this.logger("subscribe", eventName, listener);
     return true;
   }
 
+  /**
+   * Adds a one-time event listener for given event name and options.
+   * If the combination of listener and options is already for the given event name the listener is not added a second time.
+   * The next time event is triggered, this listener is invoked and then removed.
+   * @param eventName - Name of the event, listener will be added to
+   * @param listener - Function that will be called each time event is emitted
+   * @param options - Config options for listener
+   * @returns listener status if it was added or not
+   */
   once(
     eventName: string,
     listener: Listener,
     options: ListenerOptions = {}
-  ): Boolean {
+  ): boolean {
     if (!this._events[eventName]) {
       this._events[eventName] = [];
     }
     let index = getListenerIdx(this._events[eventName], listener, options);
     if (index !== -1) return false;
     this._events[eventName].push(new EventProp(listener, true, options));
-    this._logger("subscribe", eventName, listener);
+    this.logger("subscribe", eventName, listener);
     return true;
   }
 
+  /**
+   * Removes an event listener previously registered with on() or addListener().
+   * The event listener to be removed is identified using a combination of the event name, the event listener function itself, and provided options
+   * @param eventName - Name of the event, listener was added to
+   * @param listener - Listener function to be removed from the registered listeners array
+   * @param options - Config options for listener
+   * @returns listener status if it was removed or not
+   */
   removeListener(
     eventName: string,
     listener: Listener,
@@ -143,12 +174,19 @@ export class BufferedEventEmitter {
     return true;
   }
 
-  public flush(eventName: string): void;
+  public flush(eventName: string): boolean;
+  /**
+   * Flush all buffered events for given eventName if only eventName is provided
+   * else for given combination of event name, listener and options.
+   * @param eventName
+   * @param listener
+   * @param options
+   */
   public flush(
     eventName: string,
     listener: Listener,
     options: ListenerOptions
-  ): Boolean;
+  ): boolean;
   flush(eventName: string, listener?: Listener, options?: ListenerOptions) {
     let didAnyEmit = false;
     let emittedOnceListenerIndexes: number[] = [];
@@ -165,7 +203,7 @@ export class BufferedEventEmitter {
         if (shouldFlush) {
           event.fn(event.bucket);
           didAnyEmit = true;
-          this._logger("emit", eventName, event.bucket);
+          this.logger("emit", eventName, event.bucket);
           event.bucket = [];
           if (event.once) emittedOnceListenerIndexes.push(idx);
         }
@@ -177,12 +215,22 @@ export class BufferedEventEmitter {
     return didAnyEmit;
   }
 
+  /**
+   * Pause event emissions. Any subsequent event emissions will be stopped or queued and
+   * their respective listeners will not be invoked until resume() is called.
+   * @param queueEmissions if true, subsequent event emissions will be queued else stopped
+   * @param emissionInterval interval for dequeueing queued events. if interval is 0, the events are dequeued in synchronously
+   */
   pause(queueEmissions: boolean = true, emissionInterval: number = 0): void {
     this._shouldQueueEmissions = queueEmissions;
     this._emissionInterval = emissionInterval;
     this._status = "paused";
   }
 
+  /**
+   * Resumes event emission
+   * @returns void or Promise depending on emission interval value.
+   */
   resume(): Promise<void> | void {
     this._status = "emitting";
     if (this._shouldQueueEmissions) {
@@ -214,13 +262,31 @@ export class BufferedEventEmitter {
   }
 
   // aliases
+
+  /**
+   * Adds an event listener for given event name and options.
+   * If the combination of listener and options is already for the given event name the listener is not added a second time.
+   * @param eventName - Name of the event, listener was added to
+   * @param listener - Function that will be called each time event is emitted
+   * @param options - Config options for listener
+   * @returns listener status if it was added or not
+   */
   addListener(
     eventName: string,
     listener: Listener,
     options: ListenerOptions = {}
-  ): Boolean {
+  ): boolean {
     return this.on(eventName, listener, options);
   }
+
+  /**
+   * Removes an event listener previously registered with on() or addListener().
+   * The event listener to be removed is identified using a combination of the event name, the event listener function itself, and provided options
+   * @param eventName - Name of the event, listener will be added to
+   * @param listener - Listener function to be removed from the registered listeners array
+   * @param options - Config options for listener
+   * @returns listener status if it was removed or not
+   */
   off(
     eventName: string,
     listener: Listener,
@@ -229,7 +295,11 @@ export class BufferedEventEmitter {
     return this.removeListener(eventName, listener, options);
   }
 
-  _logger(type: "emit" | "subscribe", eventName: string, eventData?: any) {
+  logger(
+    type: "emit" | "subscribe",
+    eventName: string,
+    eventData?: EventData | Listener
+  ) {
     if (
       (type === "emit" && !BufferedEventEmitter.debugEnabled.logEmit) ||
       (type === "subscribe" && !BufferedEventEmitter.debugEnabled.logSubscribe)
