@@ -36,7 +36,7 @@ export class BufferedEventEmitter {
   protected _shouldQueueEmissions: boolean;
   protected _emissionInterval: number;
   protected _queue: { eventName: string; data?: EventData }[];
-  protected static debugEnabled = { logEmit: false, logSubscribe: false };
+  protected static debugEnabled = { emit: false, on: false, off: false };
 
   constructor(options?: ListenerOptions) {
     this._events = {};
@@ -135,7 +135,7 @@ export class BufferedEventEmitter {
     let index = getListenerIdx(this._events[eventName], listener, options);
     if (index !== -1) return false;
     this._events[eventName].push(new EventProp(listener, false, options));
-    this.logger("subscribe", eventName, listener);
+    this.logger("on", eventName, listener);
     return true;
   }
 
@@ -159,7 +159,7 @@ export class BufferedEventEmitter {
     let index = getListenerIdx(this._events[eventName], listener, options);
     if (index !== -1) return false;
     this._events[eventName].push(new EventProp(listener, true, options));
-    this.logger("subscribe", eventName, listener);
+    this.logger("on", eventName, listener);
     return true;
   }
 
@@ -179,6 +179,7 @@ export class BufferedEventEmitter {
     let index = getListenerIdx(this._events[eventName], listener, options);
     if (index === -1) return false;
     this._events[eventName].splice(index, 1);
+    this.logger("off", eventName, listener);
     return true;
   }
 
@@ -309,13 +310,14 @@ export class BufferedEventEmitter {
   }
 
   logger(
-    type: "emit" | "subscribe",
+    type: "emit" | "on" | "off",
     eventName: string,
     eventData?: EventData | Listener
   ) {
     if (
-      (type === "emit" && !BufferedEventEmitter.debugEnabled.logEmit) ||
-      (type === "subscribe" && !BufferedEventEmitter.debugEnabled.logSubscribe)
+      (type === "emit" && !BufferedEventEmitter.debugEnabled.emit) ||
+      (type === "on" && !BufferedEventEmitter.debugEnabled.on) ||
+      (type === "off" && !BufferedEventEmitter.debugEnabled.off)
     )
       return;
 
@@ -327,7 +329,7 @@ export class BufferedEventEmitter {
           eventData
         ).join(",")}`;
       }
-    } else if (type === "subscribe" && typeof eventData === "function") {
+    } else if (type === "on" && typeof eventData === "function") {
       eventData = eventData.toString();
     }
 
@@ -361,15 +363,8 @@ export class BufferedEventEmitter {
     });
   }
 
-  static enableDebug(logEmit?: boolean, logSubscribe?: boolean) {
-    if (logEmit === undefined && logSubscribe === undefined) {
-      this.debugEnabled = { logEmit: true, logSubscribe: true };
-    }
-    if (logEmit !== undefined)
-      this.debugEnabled = { ...this.debugEnabled, logEmit };
-    if (logSubscribe !== undefined) {
-      this.debugEnabled = { ...this.debugEnabled, logSubscribe };
-    }
+  static enableDebug(opts: { emit?: boolean; on?: boolean; off?: boolean }) {
+    this.debugEnabled = { ...this.debugEnabled, ...opts };
   }
 }
 
