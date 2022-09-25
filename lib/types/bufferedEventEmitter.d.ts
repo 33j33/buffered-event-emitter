@@ -27,8 +27,9 @@ export declare class BufferedEventEmitter {
         data?: EventData;
     }[];
     protected static debugEnabled: {
-        logEmit: boolean;
-        logSubscribe: boolean;
+        emit: boolean;
+        on: boolean;
+        off: boolean;
     };
     constructor(options?: ListenerOptions);
     /**
@@ -121,8 +122,12 @@ export declare class BufferedEventEmitter {
      * @returns listener status if it was removed or not
      */
     off(eventName: string, listener: Listener, options?: ListenerOptions): boolean;
-    logger(type: "emit" | "subscribe", eventName: string, eventData?: EventData | Listener): void;
-    static enableDebug(logEmit?: boolean, logSubscribe?: boolean): void;
+    logger(type: "emit" | "on" | "off", eventName: string, eventData?: EventData | Listener): void;
+    static enableDebug(opts: {
+        emit?: boolean;
+        on?: boolean;
+        off?: boolean;
+    }): void;
 }
 export {};
 //# sourceMappingURL=bufferedEventEmitter.d.ts.map
