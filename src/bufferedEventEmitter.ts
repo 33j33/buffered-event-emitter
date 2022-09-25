@@ -106,44 +106,41 @@ export class BufferedEventEmitter {
     eventName: string,
     listener: Listener,
     options: ListenerOptions = {}
-  ): BufferedEventEmitter {
+  ): Boolean {
     if (!this._events[eventName]) {
       this._events[eventName] = [];
     }
+    let index = getListenerIdx(this._events[eventName], listener, options);
+    if (index !== -1) return false;
     this._events[eventName].push(new EventProp(listener, false, options));
     this._logger("subscribe", eventName, listener);
-    return this;
+    return true;
   }
 
   once(
     eventName: string,
     listener: Listener,
     options: ListenerOptions = {}
-  ): BufferedEventEmitter {
+  ): Boolean {
     if (!this._events[eventName]) {
       this._events[eventName] = [];
     }
+    let index = getListenerIdx(this._events[eventName], listener, options);
+    if (index !== -1) return false;
     this._events[eventName].push(new EventProp(listener, true, options));
     this._logger("subscribe", eventName, listener);
-    return this;
+    return true;
   }
 
   removeListener(
     eventName: string,
     listener: Listener,
     options: ListenerOptions = {}
-  ): BufferedEventEmitter {
-    let index = -1;
-    this._events[eventName].forEach((event: EventProp, idx: number) => {
-      if (
-        event.fn === listener &&
-        checkListenerOptionsEquality(event.options, options)
-      ) {
-        index = idx;
-      }
-    });
-    if (index !== -1) this._events[eventName].splice(index, 1);
-    return this;
+  ): boolean {
+    let index = getListenerIdx(this._events[eventName], listener, options);
+    if (index === -1) return false;
+    this._events[eventName].splice(index, 1);
+    return true;
   }
 
   public flush(eventName: string): void;
@@ -221,14 +218,14 @@ export class BufferedEventEmitter {
     eventName: string,
     listener: Listener,
     options: ListenerOptions = {}
-  ): BufferedEventEmitter {
+  ): Boolean {
     return this.on(eventName, listener, options);
   }
   off(
     eventName: string,
     listener: Listener,
     options: ListenerOptions = {}
-  ): BufferedEventEmitter {
+  ): boolean {
     return this.removeListener(eventName, listener, options);
   }
 
@@ -312,4 +309,20 @@ function checkListenerOptionsEquality(
   }
 
   return true;
+}
+
+function getListenerIdx(
+  events: EventProp[],
+  listener: Listener,
+  options: ListenerOptions
+): number {
+  for (let i = 0; i < events.length; i++) {
+    if (
+      events[i].fn === listener &&
+      checkListenerOptionsEquality(events[i].options, options)
+    ) {
+      return i;
+    }
+  }
+  return -1;
 }
