@@ -3,6 +3,7 @@
 - Buffer events with configurable buffer capacity.
 - Pause and resume event emission.
 - Log event emission, adding and removing listeners (`emit`, `on`, `off` actions).
+- Works for both nodejs and browser.
 - based on [node events api](https://nodejs.org/api/events.html)
 
 ## Install
@@ -47,3 +48,58 @@ bEmitter.emit("ping", "third emit");
 bEmitter.flush("ping", bufferdPing, { buffered: true, bufferCapacity: 2 });
 // logs -> buffered data:  ['third emit']
 ```
+
+### Usage in Node
+
+Using esm
+
+```typescript
+// index.mjs
+
+import { BufferedEventEmitter } from "buffered-event-emitter";
+
+const bEmitter = new BufferedEventEmitter();
+```
+
+Using CommonJs
+
+```typescript
+// index.js
+
+const { BufferedEventEmitter } = require("buffered-event-emitter");
+
+const ctrl = new BufferedEventEmitter();
+```
+
+### Usage in Browser
+
+Using esm with a bundler
+
+```typescript
+// index.js
+
+import { BufferedEventEmitter } from "buffered-event-emitter";
+
+const bEmitter = new BufferedEventEmitter();
+```
+
+Using via script tag
+
+```html
+<!-- index.html -->
+
+<!-- For Dev Env -->
+<script src="https://unpkg.com/buffered-event-emitter"></script>
+
+<!-- For Production Env-->
+<script src="https://unpkg.com/buffered-event-emitter/lib/bundle.umd.min.js"></script>
+```
+
+```typescript
+// index.js
+const bEmitter = new BufferedEventEmitter();
+```
+
+### API
+
+> // Todo

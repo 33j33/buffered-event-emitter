@@ -4,6 +4,7 @@
   "description": "Event emitter that supports buffering and queueing events.",
   "main": "lib/bundle.esm.mjs",
   "module": "lib/bundle.umd.js",
+  "unpkg": "lib/bundle.umd.js",
   "types": "lib/types/index.d.ts",
   "files": [
     "lib"

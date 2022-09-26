@@ -1,4 +1,11 @@
 import { terser } from "rollup-plugin-terser";
+import pkg from "./package.json";
+
+const footer = () => {
+    return new Promise((resolve) => {
+        resolve(`(function () { if (typeof window !== "undefined") window.BufferedEventEmitter = window["${pkg.name}"].BufferedEventEmitter})()`)
+    })
+}
 
 export default {
     input: 'lib/esm/index.js',
@@ -6,28 +13,26 @@ export default {
         {
             file: 'lib/bundle.esm.mjs',
             format: 'esm',
-            exports: "named"
         },
         {
             file: 'lib/bundle.esm.min.mjs',
             format: 'esm',
             sourcemap: true,
-            exports: "named",
-            plugins: [terser()],
+            plugins: [terser()]
         },
         {
             file: 'lib/bundle.umd.js',
             format: 'umd',
-            name: 'BufferedEventEmitter',
-            exports: "named",
+            name: pkg.name,
+            footer
         },
         {
             file: 'lib/bundle.umd.min.js',
             format: 'umd',
-            name: 'BufferedEventEmitter',
+            name: pkg.name,
             sourcemap: true,
-            exports: "named",
-            plugins: [terser()],
+            footer,
+            plugins: [terser()]
         }
     ],
 }
