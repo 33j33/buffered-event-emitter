@@ -230,10 +230,10 @@ export class BufferedEventEmitter {
   }
 
   /**
-   * Pause event emissions. Any subsequent event emissions will be stopped or queued and
+   * Pause event emissions. Any subsequent event emissions will be swallowed or queued and
    * their respective listeners will not be invoked until resume() is called.
-   * @param queueEmissions if true, subsequent event emissions will be queued else stopped
-   * @param emissionInterval interval for dequeueing queued events. if interval is 0, the events are dequeued in synchronously
+   * @param queueEmissions if true, subsequent event emissions will be queued else swallowed
+   * @param emissionInterval interval for dequeueing queued events. if interval is 0, the events are dequeued synchronously else asynchronously but in order
    */
   pause(queueEmissions: boolean = true, emissionInterval: number = 0): void {
     this._shouldQueueEmissions = queueEmissions;
