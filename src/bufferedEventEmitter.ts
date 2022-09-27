@@ -363,6 +363,10 @@ export class BufferedEventEmitter {
     });
   }
 
+  /**
+   * Enable debugging
+   * @param opts
+   */
   static enableDebug(opts: { emit?: boolean; on?: boolean; off?: boolean }) {
     this.debugEnabled = { ...this.debugEnabled, ...opts };
   }

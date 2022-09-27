@@ -1,12 +1,13 @@
+![](https://badgen.net/badge/icon/typescript?icon=typescript&label)
+![](https://badgen.net/npm/types/buffered-event-emitter)
 ![](https://badgen.net/github/license/micromatch/micromatch)
 ![](https://badgen.net/npm/dt/buffered-event-emitter)
 ![](https://badgen.net/bundlephobia/dependency-count/buffered-event-emitter)
 ![](https://badgen.net/bundlephobia/tree-shaking/buffered-event-emitter)
-![](https://badgen.net/npm/types/buffered-event-emitter)
 ![](https://badgen.net/bundlephobia/min/buffered-event-emitter)
 ![](https://badgen.net/bundlephobia/minzip/buffered-event-emitter)
 
-# Buffered Event Emitter
+# Buffered Event Emitter <!-- omit in toc -->
 
 - Buffer events with configurable buffer capacity.
 - Pause and resume event emission.
@@ -15,6 +16,23 @@
 - Works for both nodejs and browser.
 - Based on [node events api](https://nodejs.org/api/events.html)
 - Typescript support
+
+## Table of Contents <!-- omit in toc -->
+
+- [Install](#install)
+- [Usage](#usage)
+  - [Usage in Node](#usage-in-node)
+  - [Usage in Browser](#usage-in-browser)
+- [API](#api)
+  - [`new BufferedEventEmitter(options?)`](#new-bufferedeventemitteroptions)
+  - [emit(eventName, data?)](#emiteventname-data)
+  - [on(eventName, listener, options?)](#oneventname-listener-options)
+  - [once(eventName, listener, options?)](#onceeventname-listener-options)
+  - [off(eventName, listener, options?)](#offeventname-listener-options)
+  - [flush(eventName, listener?, options?): boolean](#flusheventname-listener-options-boolean)
+  - [pause(queueEmissions?, emissionInterval?)](#pausequeueemissions-emissioninterval)
+  - [resume()](#resume)
+  - [enableDebug(opts: { emit?, on?, off?})](#enabledebugopts--emit-on-off)
 
 ## Install
 
@@ -110,32 +128,36 @@ Using via script tag
 const bEmitter = new BufferedEventEmitter();
 ```
 
-### API
+## API
 
-### `bEmitter = new BufferedEventEmitter(options?)`
+### `new BufferedEventEmitter(options?)`
+
+```typescript
+const bEmitter = new BufferedEventEmitter();
+```
 
 Create a new instance of BufferedEventEmitter.
 
-#### `options?`
+#### `options?` <!-- omit in toc -->
 
 Type: `object`
 
 ```typescript
 {
-  buffered?: boolean | undefined;
-  bufferCapacity?: number | undefined;
+ buffered?: boolean | undefined;
+ bufferCapacity?: number | undefined;
 }
 ```
 
 Config options for instance of BufferedEventEmitter.
 
-#### `buffered?`
+#### `buffered?` <!-- omit in toc -->
 
 Type: `boolean`
 
 Configure if event listeners registered on this instance will received buffered event data.
 
-#### `bufferCapacity?`
+#### `bufferCapacity?` <!-- omit in toc -->
 
 Type: `number`\
 Default: `5`
@@ -148,11 +170,11 @@ Configure buffer capacity. Default capacity of 5 means event listener will recei
 emit(eventName: string, data?: EventData): boolean
 ```
 
-Synchronously invokes each of the listeners registered for the event named eventName with eventData as argument, in the order they were registered.
+Synchronously invokes each of the listeners registered for the event named `eventName` with `eventData` as argument, in the order they were registered.
 
-Returns true if any listener was invoked, false otherwise.
+Returns `true` if any listener was invoked, `false` otherwise.
 
-#### Arguments
+#### Arguments <!-- omit in toc -->
 
 | Argument  | Type      | Required | Description                                           |
 | --------- | --------- | -------- | ----------------------------------------------------- |
@@ -165,12 +187,12 @@ Returns true if any listener was invoked, false otherwise.
 on(eventName: string, listener: Listener,  options?: ListenerOptions): boolean
 ```
 
-Adds an event listener for given event name and options.
-If the combination of listener and options is already present for the given event name the listener is not added a second time.
+Adds an event listener for given `eventName` and `options`.
+If the combination of `listener` and `options` is already present for the event, the `listener` is not added a second time.
 
-Returns true if listener was added false otherwise.
+Returns `true` if listener was added `false` otherwise.
 
-#### Arguments
+#### Arguments <!-- omit in toc -->
 
 | Argument  | Type            | Required | Description                                                                                                          |
 | --------- | --------------- | -------- | -------------------------------------------------------------------------------------------------------------------- |
@@ -184,13 +206,13 @@ Returns true if listener was added false otherwise.
 once(eventName: string, listener: Listener,  options?: ListenerOptions): boolean
 ```
 
-Adds a one-time event listener for given event name and options.
-If the combination of listener and options is already present the given event name the listener is not added a second time.
+Adds a one-time event `listener` for given `eventName` and `options`.
+If the combination of `listener` and `options` is already present for the event, the listener is not added a second time.
 The first time event is triggered, this listener is invoked and then removed.
 
-Returns true if listener was added false otherwise.
+Returns `true` if listener was added `false` otherwise.
 
-#### Arguments
+#### Arguments <!-- omit in toc -->
 
 | Argument  | Type            | Required | Description                                                                                                          |
 | --------- | --------------- | -------- | -------------------------------------------------------------------------------------------------------------------- |
@@ -204,12 +226,12 @@ Returns true if listener was added false otherwise.
 off(eventName: string, listener: Listener,  options?: ListenerOptions): boolean
 ```
 
-Removes an event listener previously registered with on() or addListener().
-The event listener to be removed is identified using a combination of the event name, the event listener function itself, and provided options.
+Removes an event listener previously registered with `on()` or `addListener()`.
+The event listener to be removed is identified using a combination of the `eventName`, the event `listener` function itself, and provided `options`.
 
-Returns true if listener was removed false otherwise.
+Returns `true` if listener was removed `false` otherwise.
 
-#### Arguments
+#### Arguments <!-- omit in toc -->
 
 | Argument  | Type            | Required | Description                            |
 | --------- | --------------- | -------- | -------------------------------------- |
@@ -225,9 +247,9 @@ flush(eventName: string, listener: Listener, options: ListenerOptions): boolean;
 ```
 
 Flush all buffered events for listeners for given event name if only `eventName` is provided, else buffered events for given combination of `eventName`, `listener` and `options` are flushed.
-Returns true if any events were flushed (emitted), false otherwise.
+Returns `true` if any events were flushed (emitted), `false` otherwise.
 
-#### Arguments
+#### Arguments <!-- omit in toc -->
 
 | Argument  | Type            | Required | Description                                                 |
 | --------- | --------------- | -------- | ----------------------------------------------------------- |
@@ -242,9 +264,61 @@ pause(queueEmissions: boolean = true, emissionInterval: number = 0): void
 ```
 
 Pause event emissions. Any subsequent event emissions will be swallowed or queued and
-their respective listeners will not be invoked until resume() is called.
+their respective listeners will not be invoked until `resume()` is called.
 
 | Argument         | Type    | Required | Description                                                                                                                     |
 | ---------------- | ------- | -------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | queueEmissions   | boolean | No       | if true, subsequent event emissions will be queued else swallowed and the corresponding listeners not invoked.                  |
 | emissionInterval | number  | No       | interval for dequeueing queued events. if interval is 0, the events are dequeued synchronously else asynchronously but in order |
+
+### resume()
+
+```typescript
+resume(): Promise<void> | void
+```
+
+Resumes event emission.
+It returns a Promise if emission interval was greater than 0 when event emission was paused using
+`pause()`
+
+### enableDebug(opts: { emit?, on?, off?})
+
+```typescript
+static enableDebug(opts: { emit?: boolean; on?: boolean; off?: boolean })
+```
+
+Enables debugging for all instances of the event emitter through the `logger` function.  
+Depending on what actions are `true` in opts, logging is enabled for that action.  
+Eg, `{ emit: true}` enables debuggin for all `emit` actions.
+
+Example:
+
+```typescript
+const bEmitter = new BufferedEventEmitter();
+BufferedEventEmitter.enableDebug({ emit: true, on: true, off: true });
+
+function ping(data: string) {
+  // ...
+}
+
+bEmitter.on("ping", ping);
+bEmitter.emit("ping", "first emit");
+bEmitter.emit("ping", "second emit");
+bEmitter.off("ping", ping);
+bEmitter.emit("ping", "third emit");
+
+// Logged data
+/**
+[Event Type: on | Event Name: ping | 22:23:23.801]
+    [Event Data: function ping(data) {    // ...}}]
+
+[Event Type: emit | Event Name: ping | 22:23:23.802]
+     [Event Data: "first emit"}]
+
+[Event Type: emit | Event Name: ping | 22:23:23.803]
+     [Event Data: "second emit"}]
+
+[Event Type: off | Event Name: ping | 22:23:23.803]
+     [Event Data: function ping(data) {    // ...}}]
+*/
+```
