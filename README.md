@@ -24,7 +24,7 @@
   - [Usage in Node](#usage-in-node)
   - [Usage in Browser](#usage-in-browser)
 - [API](#api)
-  - [`new BufferedEventEmitter(options?)`](#new-bufferedeventemitteroptions)
+  - [new BufferedEventEmitter(options?)](#new-bufferedeventemitteroptions)
   - [emit(eventName, data?)](#emiteventname-data)
   - [on(eventName, listener, options?)](#oneventname-listener-options)
   - [once(eventName, listener, options?)](#onceeventname-listener-options)
@@ -75,7 +75,26 @@ bEmitter.emit("ping", "third emit");
 // flushes any events in the buffer associated with provided listener
 bEmitter.flush("ping", bufferdPing, { buffered: true, bufferCapacity: 2 });
 // logs -> buffered data:  ['third emit']
+
+bEmitter.pause(true);
+// emissions after this, will be queued
+
+console.log("emission queued");
+
+bEmitter.emit("ping", "1");
+bEmitter.emit("ping", "2");
+bEmitter.emit("ping", "3");
+
+bEmitter.resume();
+// logs -> buffered data: ["1", "2"]
+
+console.log("emission dequeued");
+
+bEmitter.emit("ping", "4");
+// logs -> buffered data: ["3", "4"]
 ```
+
+**Demo**: https://stackblitz.com/edit/buffered-event-emitter-example-one
 
 ### Usage in Node
 
@@ -130,7 +149,7 @@ const bEmitter = new BufferedEventEmitter();
 
 ## API
 
-### `new BufferedEventEmitter(options?)`
+### new BufferedEventEmitter(options?)
 
 ```typescript
 const bEmitter = new BufferedEventEmitter();
