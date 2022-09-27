@@ -55,7 +55,7 @@ export class BufferedEventEmitter {
    * Synchronously invokes each of the listeners registered for the event named eventName in the order they were registered.
    * Returns true if any listener was invoked, false otherwise.
    * @param eventName - event name
-   *  @returns event emitted status
+   * @returns event emitted status
    */
   public emit(eventName: string): boolean;
   /**
@@ -118,7 +118,7 @@ export class BufferedEventEmitter {
 
   /**
    * Adds an event listener for given event name and options.
-   * If the combination of listener and options is already for the given event name the listener is not added a second time.
+   * If the combination of listener and options is already present the given event name the listener is not added a second time.
    * @param eventName - Name of the event, listener will be added to
    * @param listener - Function that will be called each time event is emitted
    * @param options - Config options for listener
@@ -127,7 +127,7 @@ export class BufferedEventEmitter {
   on(
     eventName: string,
     listener: Listener,
-    options: ListenerOptions = {}
+    options: ListenerOptions = this._defaultListenerOptions
   ): boolean {
     if (!this._events[eventName]) {
       this._events[eventName] = [];
@@ -141,8 +141,8 @@ export class BufferedEventEmitter {
 
   /**
    * Adds a one-time event listener for given event name and options.
-   * If the combination of listener and options is already for the given event name the listener is not added a second time.
-   * The next time event is triggered, this listener is invoked and then removed.
+   * If the combination of listener and options is already present the given event name the listener is not added a second time.
+   * The first time event is triggered, this listener is invoked and then removed.
    * @param eventName - Name of the event, listener will be added to
    * @param listener - Function that will be called each time event is emitted
    * @param options - Config options for listener
@@ -151,7 +151,7 @@ export class BufferedEventEmitter {
   once(
     eventName: string,
     listener: Listener,
-    options: ListenerOptions = {}
+    options: ListenerOptions = this._defaultListenerOptions
   ): boolean {
     if (!this._events[eventName]) {
       this._events[eventName] = [];
@@ -174,7 +174,7 @@ export class BufferedEventEmitter {
   removeListener(
     eventName: string,
     listener: Listener,
-    options: ListenerOptions = {}
+    options: ListenerOptions = this._defaultListenerOptions
   ): boolean {
     let index = getListenerIdx(this._events[eventName], listener, options);
     if (index === -1) return false;
@@ -279,7 +279,7 @@ export class BufferedEventEmitter {
 
   /**
    * Adds an event listener for given event name and options.
-   * If the combination of listener and options is already for the given event name the listener is not added a second time.
+   * If the combination of listener and options is already present the given event name the listener is not added a second time.
    * @param eventName - Name of the event, listener was added to
    * @param listener - Function that will be called each time event is emitted
    * @param options - Config options for listener
@@ -288,7 +288,7 @@ export class BufferedEventEmitter {
   addListener(
     eventName: string,
     listener: Listener,
-    options: ListenerOptions = {}
+    options: ListenerOptions = this._defaultListenerOptions
   ): boolean {
     return this.on(eventName, listener, options);
   }
@@ -304,7 +304,7 @@ export class BufferedEventEmitter {
   off(
     eventName: string,
     listener: Listener,
-    options: ListenerOptions = {}
+    options: ListenerOptions = this._defaultListenerOptions
   ): boolean {
     return this.removeListener(eventName, listener, options);
   }
