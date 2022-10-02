@@ -115,7 +115,7 @@ Using CommonJs
 
 const { BufferedEventEmitter } = require("buffered-event-emitter");
 
-const ctrl = new BufferedEventEmitter();
+const bEmitter = new BufferedEventEmitter();
 ```
 
 ### Usage in Browser
