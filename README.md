@@ -3,7 +3,6 @@
 ![](https://badgen.net/github/license/micromatch/micromatch)
 ![](https://badgen.net/npm/dt/buffered-event-emitter)
 ![](https://badgen.net/bundlephobia/dependency-count/buffered-event-emitter)
-![](https://badgen.net/bundlephobia/tree-shaking/buffered-event-emitter)
 ![](https://badgen.net/bundlephobia/min/buffered-event-emitter)
 ![](https://badgen.net/bundlephobia/minzip/buffered-event-emitter)
 

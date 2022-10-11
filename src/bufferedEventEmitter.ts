@@ -1,33 +1,9 @@
-type Events = {
-  [eventName: string]: EventProp[];
-};
-
-type ListenerOptions = {
-  buffered?: boolean;
-  bufferCapacity?: number;
-};
-
-type EventData = any;
-
-type Listener = (data: EventData) => void;
-
-class EventProp {
-  public fn: Listener;
-  public once: boolean;
-  public options: ListenerOptions;
-  public bucket?: any[];
-  public timeoutID?: ReturnType<typeof setTimeout>;
-
-  constructor(fn: Listener, once: boolean, options: ListenerOptions) {
-    this.fn = fn;
-    this.once = once;
-    this.options = options;
-    if (options?.buffered) {
-      this.bucket = [];
-      this.timeoutID = undefined;
-    }
-  }
-}
+import { EventData, Events, Listener, ListenerOptions } from "./types";
+import {
+  EventProp,
+  getListenerIdx,
+  checkListenerOptionsEquality,
+} from "./utils";
 
 export class BufferedEventEmitter {
   protected _events: Events;
@@ -67,7 +43,7 @@ export class BufferedEventEmitter {
    */
   public emit(eventName: string, data: EventData): boolean;
   emit(eventName: string, data?: EventData): boolean {
-    if (!this._events[eventName] || this._events[eventName].length === 0) {
+    if (!this._events.eventName || this._events.eventName.length === 0) {
       return false;
     }
 
@@ -82,7 +58,7 @@ export class BufferedEventEmitter {
     let didAnyEmit = false;
 
     // iterate through all registered events
-    this._events[eventName].forEach((event: EventProp) => {
+    this._events.eventName.forEach((event: EventProp) => {
       let didEmit = false;
 
       // buffered event handling
@@ -112,13 +88,13 @@ export class BufferedEventEmitter {
         eventProps.push(event);
       }
     });
-    this._events[eventName] = eventProps;
+    this._events.eventName = eventProps;
     return didAnyEmit;
   }
 
   /**
    * Adds an event listener for given event name and options.
-   * If the combination of listener and options is already present the given event name the listener is not added a second time.
+   * If the combination of event name, listener and options is already present the given event name the listener is not added a second time.
    * @param eventName - Name of the event, listener will be added to
    * @param listener - Function that will be called each time event is emitted
    * @param options - Config options for listener
@@ -129,19 +105,19 @@ export class BufferedEventEmitter {
     listener: Listener,
     options: ListenerOptions = this._defaultListenerOptions
   ): boolean {
-    if (!this._events[eventName]) {
-      this._events[eventName] = [];
+    if (!this._events.eventName) {
+      this._events.eventName = [];
     }
-    let index = getListenerIdx(this._events[eventName], listener, options);
+    let index = getListenerIdx(this._events.eventName, listener, options);
     if (index !== -1) return false;
-    this._events[eventName].push(new EventProp(listener, false, options));
+    this._events.eventName.push(new EventProp(listener, false, options));
     this.logger("on", eventName, listener);
     return true;
   }
 
   /**
    * Adds a one-time event listener for given event name and options.
-   * If the combination of listener and options is already present the given event name the listener is not added a second time.
+   * If the combination of event name, listener and options is already present the given event name the listener is not added a second time.
    * The first time event is triggered, this listener is invoked and then removed.
    * @param eventName - Name of the event, listener will be added to
    * @param listener - Function that will be called each time event is emitted
@@ -153,12 +129,12 @@ export class BufferedEventEmitter {
     listener: Listener,
     options: ListenerOptions = this._defaultListenerOptions
   ): boolean {
-    if (!this._events[eventName]) {
-      this._events[eventName] = [];
+    if (!this._events.eventName) {
+      this._events.eventName = [];
     }
-    let index = getListenerIdx(this._events[eventName], listener, options);
+    let index = getListenerIdx(this._events.eventName, listener, options);
     if (index !== -1) return false;
-    this._events[eventName].push(new EventProp(listener, true, options));
+    this._events.eventName.push(new EventProp(listener, true, options));
     this.logger("on", eventName, listener);
     return true;
   }
@@ -171,14 +147,14 @@ export class BufferedEventEmitter {
    * @param options - Config options for listener
    * @returns listener status if it was removed or not
    */
-  removeListener(
+  off(
     eventName: string,
     listener: Listener,
     options: ListenerOptions = this._defaultListenerOptions
   ): boolean {
-    let index = getListenerIdx(this._events[eventName], listener, options);
+    let index = getListenerIdx(this._events.eventName, listener, options);
     if (index === -1) return false;
-    this._events[eventName].splice(index, 1);
+    this._events.eventName.splice(index, 1);
     this.logger("off", eventName, listener);
     return true;
   }
@@ -204,7 +180,7 @@ export class BufferedEventEmitter {
   flush(eventName: string, listener?: Listener, options?: ListenerOptions) {
     let didAnyEmit = false;
     let emittedOnceListenerIndexes: number[] = [];
-    this._events[eventName].forEach((event, idx) => {
+    this._events.eventName.forEach((event, idx) => {
       if (event.options.buffered && event?.bucket && event.bucket.length > 0) {
         const matchesListenerFn = listener && listener === event.fn;
         const matchesOptions =
@@ -223,7 +199,7 @@ export class BufferedEventEmitter {
         }
       }
     });
-    this._events[eventName] = this._events[eventName].filter(
+    this._events.eventName = this._events.eventName.filter(
       (_, idx) => !emittedOnceListenerIndexes.includes(idx)
     );
     return didAnyEmit;
@@ -265,13 +241,30 @@ export class BufferedEventEmitter {
     }
   }
 
+  /**
+   * Removes all listeners for the instance's events
+   */
+  public removeListeners(): void;
+  /**
+   * Removes all listeners for the provided event name
+   * @param eventName
+   */
+  public removeListeners(eventName: string): void;
+  removeListeners(eventName?: string): void {
+    if (eventName && this._events.eventName?.length > 0) {
+      this._events.eventName = [];
+    } else {
+      this._events = {};
+    }
+  }
+
   public listeners(): Events;
   public listeners(eventName: string): Listener[];
   listeners(eventName?: string) {
     if (eventName === undefined) {
       return this._events;
     } else {
-      return this._events[eventName].map((event) => event.fn);
+      return this._events.eventName.map((event) => event.fn);
     }
   }
 
@@ -301,15 +294,15 @@ export class BufferedEventEmitter {
    * @param options - Config options for listener
    * @returns listener status if it was removed or not
    */
-  off(
+  removeListener(
     eventName: string,
     listener: Listener,
     options: ListenerOptions = this._defaultListenerOptions
   ): boolean {
-    return this.removeListener(eventName, listener, options);
+    return this.off(eventName, listener, options);
   }
 
-  logger(
+  protected logger(
     type: "emit" | "on" | "off",
     eventName: string,
     eventData?: EventData | Listener
@@ -364,47 +357,13 @@ export class BufferedEventEmitter {
   }
 
   /**
-   * Enable debugging
+   * Enable debugging for all instances of the emitter
    * @param opts
    */
   static enableDebug(opts: { emit?: boolean; on?: boolean; off?: boolean }) {
-    this.debugEnabled = { ...this.debugEnabled, ...opts };
+    BufferedEventEmitter.debugEnabled = {
+      ...BufferedEventEmitter.debugEnabled,
+      ...opts,
+    };
   }
-}
-
-function checkListenerOptionsEquality(
-  obj1: ListenerOptions,
-  obj2: ListenerOptions
-) {
-  if (!obj1 || !obj2) return false;
-  const keys1 = Object.keys(obj1);
-  const keys2 = Object.keys(obj2);
-  if (keys1.length !== keys2.length) {
-    return false;
-  }
-
-  let key: keyof ListenerOptions;
-  for (key in obj1) {
-    if (obj1[key] !== obj2[key]) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-function getListenerIdx(
-  events: EventProp[],
-  listener: Listener,
-  options: ListenerOptions
-): number {
-  for (let i = 0; i < events.length; i++) {
-    if (
-      events[i].fn === listener &&
-      checkListenerOptionsEquality(events[i].options, options)
-    ) {
-      return i;
-    }
-  }
-  return -1;
 }
