@@ -1,20 +1,4 @@
-declare type Events = {
-    [eventName: string]: EventProp[];
-};
-declare type ListenerOptions = {
-    buffered?: boolean;
-    bufferCapacity?: number;
-};
-declare type EventData = any;
-declare type Listener = (data: EventData) => void;
-declare class EventProp {
-    fn: Listener;
-    once: boolean;
-    options: ListenerOptions;
-    bucket?: any[];
-    timeoutID?: ReturnType<typeof setTimeout>;
-    constructor(fn: Listener, once: boolean, options: ListenerOptions);
-}
+import { EventData, Events, Listener, ListenerOptions } from "./types";
 export declare class BufferedEventEmitter {
     #private;
     protected _events: Events;
@@ -37,7 +21,7 @@ export declare class BufferedEventEmitter {
      * Synchronously invokes each of the listeners registered for the event named eventName in the order they were registered.
      * Returns true if any listener was invoked, false otherwise.
      * @param eventName - event name
-     *  @returns event emitted status
+     * @returns event emitted status
      */
     emit(eventName: string): boolean;
     /**
@@ -50,7 +34,7 @@ export declare class BufferedEventEmitter {
     emit(eventName: string, data: EventData): boolean;
     /**
      * Adds an event listener for given event name and options.
-     * If the combination of listener and options is already for the given event name the listener is not added a second time.
+     * If the combination of event name, listener and options is already present the given event name the listener is not added a second time.
      * @param eventName - Name of the event, listener will be added to
      * @param listener - Function that will be called each time event is emitted
      * @param options - Config options for listener
@@ -59,8 +43,8 @@ export declare class BufferedEventEmitter {
     on(eventName: string, listener: Listener, options?: ListenerOptions): boolean;
     /**
      * Adds a one-time event listener for given event name and options.
-     * If the combination of listener and options is already for the given event name the listener is not added a second time.
-     * The next time event is triggered, this listener is invoked and then removed.
+     * If the combination of event name, listener and options is already present the given event name the listener is not added a second time.
+     * The first time event is triggered, this listener is invoked and then removed.
      * @param eventName - Name of the event, listener will be added to
      * @param listener - Function that will be called each time event is emitted
      * @param options - Config options for listener
@@ -75,7 +59,7 @@ export declare class BufferedEventEmitter {
      * @param options - Config options for listener
      * @returns listener status if it was removed or not
      */
-    removeListener(eventName: string, listener: Listener, options?: ListenerOptions): boolean;
+    off(eventName: string, listener: Listener, options?: ListenerOptions): boolean;
     /**
      * Flush all buffered events for listeners for given event name.
      * @param eventName
@@ -91,10 +75,10 @@ export declare class BufferedEventEmitter {
      */
     flush(eventName: string, listener: Listener, options: ListenerOptions): boolean;
     /**
-     * Pause event emissions. Any subsequent event emissions will be stopped or queued and
+     * Pause event emissions. Any subsequent event emissions will be swallowed or queued and
      * their respective listeners will not be invoked until resume() is called.
-     * @param queueEmissions if true, subsequent event emissions will be queued else stopped
-     * @param emissionInterval interval for dequeueing queued events. if interval is 0, the events are dequeued in synchronously
+     * @param queueEmissions if true, subsequent event emissions will be queued else swallowed
+     * @param emissionInterval interval for dequeueing queued events. if interval is 0, the events are dequeued synchronously else asynchronously but in order
      */
     pause(queueEmissions?: boolean, emissionInterval?: number): void;
     /**
@@ -102,11 +86,20 @@ export declare class BufferedEventEmitter {
      * @returns void or Promise depending on emission interval value.
      */
     resume(): Promise<void> | void;
+    /**
+     * Removes all listeners for the instance's events
+     */
+    removeListeners(): void;
+    /**
+     * Removes all listeners for the provided event name
+     * @param eventName
+     */
+    removeListeners(eventName: string): void;
     listeners(): Events;
     listeners(eventName: string): Listener[];
     /**
      * Adds an event listener for given event name and options.
-     * If the combination of listener and options is already for the given event name the listener is not added a second time.
+     * If the combination of listener and options is already present the given event name the listener is not added a second time.
      * @param eventName - Name of the event, listener was added to
      * @param listener - Function that will be called each time event is emitted
      * @param options - Config options for listener
@@ -121,13 +114,16 @@ export declare class BufferedEventEmitter {
      * @param options - Config options for listener
      * @returns listener status if it was removed or not
      */
-    off(eventName: string, listener: Listener, options?: ListenerOptions): boolean;
-    logger(type: "emit" | "on" | "off", eventName: string, eventData?: EventData | Listener): void;
+    removeListener(eventName: string, listener: Listener, options?: ListenerOptions): boolean;
+    protected logger(type: "emit" | "on" | "off", eventName: string, eventData?: EventData | Listener): void;
+    /**
+     * Enable debugging for all instances of the emitter
+     * @param opts
+     */
     static enableDebug(opts: {
         emit?: boolean;
         on?: boolean;
         off?: boolean;
     }): void;
 }
-export {};
 //# sourceMappingURL=bufferedEventEmitter.d.ts.map
