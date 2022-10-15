@@ -89,12 +89,12 @@ export declare class BufferedEventEmitter {
     /**
      * Removes all listeners for the instance's events
      */
-    removeListeners(): void;
+    cleanup(): void;
     /**
      * Removes all listeners for the provided event name
      * @param eventName
      */
-    removeListeners(eventName: string): void;
+    cleanup(eventName: string): void;
     listeners(): Events;
     listeners(eventName: string): Listener[];
     /**
@@ -109,7 +109,7 @@ export declare class BufferedEventEmitter {
     /**
      * Removes an event listener previously registered with on() or addListener().
      * The event listener to be removed is identified using a combination of the event name, the event listener function itself, and provided options
-     * @param eventName - Name of the event, listener will be added to
+     * @param eventName  Name of the event, listener will be added to
      * @param listener - Listener function to be removed from the registered listeners array
      * @param options - Config options for listener
      * @returns listener status if it was removed or not

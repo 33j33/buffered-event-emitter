@@ -43,7 +43,7 @@ export class BufferedEventEmitter {
    */
   public emit(eventName: string, data: EventData): boolean;
   emit(eventName: string, data?: EventData): boolean {
-    if (!this._events.eventName || this._events.eventName.length === 0) {
+    if (!this._events[eventName] || this._events[eventName].length === 0) {
       return false;
     }
 
@@ -58,7 +58,7 @@ export class BufferedEventEmitter {
     let didAnyEmit = false;
 
     // iterate through all registered events
-    this._events.eventName.forEach((event: EventProp) => {
+    this._events[eventName].forEach((event: EventProp) => {
       let didEmit = false;
 
       // buffered event handling
@@ -88,7 +88,7 @@ export class BufferedEventEmitter {
         eventProps.push(event);
       }
     });
-    this._events.eventName = eventProps;
+    this._events[eventName] = eventProps;
     return didAnyEmit;
   }
 
@@ -105,12 +105,12 @@ export class BufferedEventEmitter {
     listener: Listener,
     options: ListenerOptions = this._defaultListenerOptions
   ): boolean {
-    if (!this._events.eventName) {
-      this._events.eventName = [];
+    if (!this._events[eventName]) {
+      this._events[eventName] = [];
     }
-    let index = getListenerIdx(this._events.eventName, listener, options);
+    let index = getListenerIdx(this._events[eventName], listener, options);
     if (index !== -1) return false;
-    this._events.eventName.push(new EventProp(listener, false, options));
+    this._events[eventName].push(new EventProp(listener, false, options));
     this.logger("on", eventName, listener);
     return true;
   }
@@ -129,12 +129,12 @@ export class BufferedEventEmitter {
     listener: Listener,
     options: ListenerOptions = this._defaultListenerOptions
   ): boolean {
-    if (!this._events.eventName) {
-      this._events.eventName = [];
+    if (!this._events[eventName]) {
+      this._events[eventName] = [];
     }
-    let index = getListenerIdx(this._events.eventName, listener, options);
+    let index = getListenerIdx(this._events[eventName], listener, options);
     if (index !== -1) return false;
-    this._events.eventName.push(new EventProp(listener, true, options));
+    this._events[eventName].push(new EventProp(listener, true, options));
     this.logger("on", eventName, listener);
     return true;
   }
@@ -152,9 +152,9 @@ export class BufferedEventEmitter {
     listener: Listener,
     options: ListenerOptions = this._defaultListenerOptions
   ): boolean {
-    let index = getListenerIdx(this._events.eventName, listener, options);
+    let index = getListenerIdx(this._events[eventName], listener, options);
     if (index === -1) return false;
-    this._events.eventName.splice(index, 1);
+    this._events[eventName].splice(index, 1);
     this.logger("off", eventName, listener);
     return true;
   }
@@ -180,7 +180,7 @@ export class BufferedEventEmitter {
   flush(eventName: string, listener?: Listener, options?: ListenerOptions) {
     let didAnyEmit = false;
     let emittedOnceListenerIndexes: number[] = [];
-    this._events.eventName.forEach((event, idx) => {
+    this._events[eventName].forEach((event, idx) => {
       if (event.options.buffered && event?.bucket && event.bucket.length > 0) {
         const matchesListenerFn = listener && listener === event.fn;
         const matchesOptions =
@@ -199,7 +199,7 @@ export class BufferedEventEmitter {
         }
       }
     });
-    this._events.eventName = this._events.eventName.filter(
+    this._events[eventName] = this._events[eventName].filter(
       (_, idx) => !emittedOnceListenerIndexes.includes(idx)
     );
     return didAnyEmit;
@@ -226,7 +226,6 @@ export class BufferedEventEmitter {
     if (this._shouldQueueEmissions) {
       if (this._emissionInterval > 0) {
         const dequeueAsync = async () => {
-          console.log("queue", this._queue);
           for (const item of this._queue) {
             await this.#emitAfterTimeout(item, this._emissionInterval);
           }
@@ -244,16 +243,18 @@ export class BufferedEventEmitter {
   /**
    * Removes all listeners for the instance's events
    */
-  public removeListeners(): void;
+  public cleanup(): void;
   /**
    * Removes all listeners for the provided event name
    * @param eventName
    */
-  public removeListeners(eventName: string): void;
-  removeListeners(eventName?: string): void {
-    if (eventName && this._events.eventName?.length > 0) {
-      this._events.eventName = [];
+  public cleanup(eventName: string): void;
+  cleanup(eventName?: string): void {
+    if (eventName && this._events[eventName]?.length > 0) {
+      this._events[eventName] = [];
+      this._queue = this._queue.filter((e) => e.eventName !== eventName);
     } else {
+      this._queue = [];
       this._events = {};
     }
   }
@@ -264,7 +265,7 @@ export class BufferedEventEmitter {
     if (eventName === undefined) {
       return this._events;
     } else {
-      return this._events.eventName.map((event) => event.fn);
+      return this._events[eventName].map((event) => event.fn);
     }
   }
 
@@ -289,7 +290,7 @@ export class BufferedEventEmitter {
   /**
    * Removes an event listener previously registered with on() or addListener().
    * The event listener to be removed is identified using a combination of the event name, the event listener function itself, and provided options
-   * @param eventName - Name of the event, listener will be added to
+   * @param eventName  Name of the event, listener will be added to
    * @param listener - Listener function to be removed from the registered listeners array
    * @param options - Config options for listener
    * @returns listener status if it was removed or not

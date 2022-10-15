@@ -1,1 +1,1 @@
-export { BufferedEventEmitter } from "./bufferedEventEmitter.js";
+export { BufferedEventEmitter } from "./bufferedEventEmitter";
