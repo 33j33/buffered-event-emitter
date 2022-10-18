@@ -1,2 +1,2 @@
-export { BufferedEventEmitter } from "./bufferedEventEmitter.js";
+export { BufferedEventEmitter } from "./bufferedEventEmitter";
 //# sourceMappingURL=index.d.ts.map

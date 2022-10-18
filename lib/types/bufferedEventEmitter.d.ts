@@ -34,7 +34,7 @@ export declare class BufferedEventEmitter {
     emit(eventName: string, data: EventData): boolean;
     /**
      * Adds an event listener for given event name and options.
-     * If the combination of event name, listener and options is already present the given event name the listener is not added a second time.
+     * If the combination of event name, listener and options is already present for the given event name the listener is not added a second time.
      * @param eventName - Name of the event, listener will be added to
      * @param listener - Function that will be called each time event is emitted
      * @param options - Config options for listener
@@ -43,7 +43,7 @@ export declare class BufferedEventEmitter {
     on(eventName: string, listener: Listener, options?: ListenerOptions): boolean;
     /**
      * Adds a one-time event listener for given event name and options.
-     * If the combination of event name, listener and options is already present the given event name the listener is not added a second time.
+     * If the combination of event name, listener and options is already present for the given event name the listener is not added a second time.
      * The first time event is triggered, this listener is invoked and then removed.
      * @param eventName - Name of the event, listener will be added to
      * @param listener - Function that will be called each time event is emitted
