@@ -122,7 +122,7 @@ export class BufferedEventEmitter {
    * @param eventName - Name of the event, listener will be added to
    * @param listener - Function that will be called each time event is emitted
    * @param options - Config options for listener
-   * @returns listener status if it was added or not
+   * @returns `true` if listener was added `false` otherwise.
    */
   once(
     eventName: string,
@@ -145,7 +145,7 @@ export class BufferedEventEmitter {
    * @param eventName - Name of the event, listener was added to
    * @param listener - Listener function to be removed from the registered listeners array
    * @param options - Config options for listener
-   * @returns listener status if it was removed or not
+   * @returns `true` if listener was removed `false` otherwise.
    */
   off(
     eventName: string,
@@ -241,22 +241,24 @@ export class BufferedEventEmitter {
   }
 
   /**
-   * Removes all listeners for the instance's events
+   * Remove all listeners for the provided event name.
+   * @param eventName - event name
+   * @returns `true` if any listener was removed for the event `false` otherwise.
    */
-  public cleanup(): void;
-  /**
-   * Removes all listeners for the provided event name
-   * @param eventName
-   */
-  public cleanup(eventName: string): void;
-  cleanup(eventName?: string): void {
+  removeListeners(eventName: string): Boolean {
     if (eventName && this._events[eventName]?.length > 0) {
-      this._events[eventName] = [];
+      delete this._events[eventName];
       this._queue = this._queue.filter((e) => e.eventName !== eventName);
-    } else {
-      this._queue = [];
-      this._events = {};
-    }
+      return true;
+    } else return false;
+  }
+
+  /**
+   * Removes all listeners and queued events for the instance.
+   */
+  cleanup(): void {
+    this._queue = [];
+    this._events = {};
   }
 
   public listeners(): Events;

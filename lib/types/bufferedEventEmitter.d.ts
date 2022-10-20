@@ -48,7 +48,7 @@ export declare class BufferedEventEmitter {
      * @param eventName - Name of the event, listener will be added to
      * @param listener - Function that will be called each time event is emitted
      * @param options - Config options for listener
-     * @returns listener status if it was added or not
+     * @returns `true` if listener was added `false` otherwise.
      */
     once(eventName: string, listener: Listener, options?: ListenerOptions): boolean;
     /**
@@ -57,7 +57,7 @@ export declare class BufferedEventEmitter {
      * @param eventName - Name of the event, listener was added to
      * @param listener - Listener function to be removed from the registered listeners array
      * @param options - Config options for listener
-     * @returns listener status if it was removed or not
+     * @returns `true` if listener was removed `false` otherwise.
      */
     off(eventName: string, listener: Listener, options?: ListenerOptions): boolean;
     /**
@@ -87,14 +87,15 @@ export declare class BufferedEventEmitter {
      */
     resume(): Promise<void> | void;
     /**
-     * Removes all listeners for the instance's events
+     * Remove all listeners for the provided event name.
+     * @param eventName - event name
+     * @returns `true` if any listener was removed for the event `false` otherwise.
+     */
+    removeListeners(eventName: string): Boolean;
+    /**
+     * Removes all listeners and queued events for the instance.
      */
     cleanup(): void;
-    /**
-     * Removes all listeners for the provided event name
-     * @param eventName
-     */
-    cleanup(eventName: string): void;
     listeners(): Events;
     listeners(eventName: string): Listener[];
     /**
