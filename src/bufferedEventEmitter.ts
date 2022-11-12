@@ -5,24 +5,30 @@ import {
   checkListenerOptionsEquality,
 } from "./utils";
 
+// when buffered
+const DEFAULT_BUFFER_CAPACITY = 5;
+
+// when emission paused
+const DEFAULT_EMISSION_INTERVAL = 0;
+
 export class BufferedEventEmitter {
   protected _events: Events;
   protected _defaultListenerOptions: Required<ListenerOptions>;
   protected _status: "paused" | "emitting";
-  protected _shouldQueueEmissions: boolean;
+  protected _queueEmissions: boolean;
   protected _emissionInterval: number;
-  protected _queue: { eventName: string; data?: EventData }[];
-  protected static debugEnabled = { emit: false, on: false, off: false };
+  protected _queue: { eventName: string; data?: EventData }[]; // stores buffered events
+  protected static debugStatus = { emit: false, on: false, off: false };
 
   constructor(options?: ListenerOptions) {
     this._events = {};
     this._defaultListenerOptions = {
       buffered: options?.buffered ?? false,
-      bufferCapacity: options?.bufferCapacity ?? 5,
+      bufferCapacity: options?.bufferCapacity ?? DEFAULT_BUFFER_CAPACITY,
     };
     this._status = "emitting";
-    this._shouldQueueEmissions = true;
-    this._emissionInterval = 0;
+    this._queueEmissions = true;
+    this._emissionInterval = DEFAULT_EMISSION_INTERVAL;
     this._queue = [];
   }
 
@@ -48,7 +54,7 @@ export class BufferedEventEmitter {
     }
 
     if (this._status === "paused") {
-      if (this._shouldQueueEmissions) this._queue.push({ eventName, data });
+      if (this._queueEmissions) this._queue.push({ eventName, data });
       return false;
     }
 
@@ -108,6 +114,7 @@ export class BufferedEventEmitter {
     if (!this._events[eventName]) {
       this._events[eventName] = [];
     }
+    // dedupe listeners
     let index = getListenerIdx(this._events[eventName], listener, options);
     if (index !== -1) return false;
     this._events[eventName].push(new EventProp(listener, false, options));
@@ -132,6 +139,7 @@ export class BufferedEventEmitter {
     if (!this._events[eventName]) {
       this._events[eventName] = [];
     }
+    // dedupe listeners
     let index = getListenerIdx(this._events[eventName], listener, options);
     if (index !== -1) return false;
     this._events[eventName].push(new EventProp(listener, true, options));
@@ -211,8 +219,11 @@ export class BufferedEventEmitter {
    * @param queueEmissions if true, subsequent event emissions will be queued else swallowed
    * @param emissionInterval interval for dequeueing queued events. if interval is 0, the events are dequeued synchronously else asynchronously but in order
    */
-  pause(queueEmissions: boolean = true, emissionInterval: number = 0): void {
-    this._shouldQueueEmissions = queueEmissions;
+  pause(
+    queueEmissions: boolean = true,
+    emissionInterval: number = DEFAULT_EMISSION_INTERVAL
+  ): void {
+    this._queueEmissions = queueEmissions;
     this._emissionInterval = emissionInterval;
     this._status = "paused";
   }
@@ -223,8 +234,8 @@ export class BufferedEventEmitter {
    */
   resume(): Promise<void> | void {
     this._status = "emitting";
-    if (this._shouldQueueEmissions) {
-      if (this._emissionInterval > 0) {
+    if (this._queueEmissions) {
+      if (this._emissionInterval > DEFAULT_EMISSION_INTERVAL) {
         const dequeueAsync = async () => {
           for (const item of this._queue) {
             await this.#emitAfterTimeout(item, this._emissionInterval);
@@ -311,9 +322,9 @@ export class BufferedEventEmitter {
     eventData?: EventData | Listener
   ) {
     if (
-      (type === "emit" && !BufferedEventEmitter.debugEnabled.emit) ||
-      (type === "on" && !BufferedEventEmitter.debugEnabled.on) ||
-      (type === "off" && !BufferedEventEmitter.debugEnabled.off)
+      (type === "emit" && !BufferedEventEmitter.debugStatus.emit) ||
+      (type === "on" && !BufferedEventEmitter.debugStatus.on) ||
+      (type === "off" && !BufferedEventEmitter.debugStatus.off)
     )
       return;
 
@@ -364,8 +375,8 @@ export class BufferedEventEmitter {
    * @param opts
    */
   static enableDebug(opts: { emit?: boolean; on?: boolean; off?: boolean }) {
-    BufferedEventEmitter.debugEnabled = {
-      ...BufferedEventEmitter.debugEnabled,
+    BufferedEventEmitter.debugStatus = {
+      ...BufferedEventEmitter.debugStatus,
       ...opts,
     };
   }

@@ -15,7 +15,7 @@
     "import": "./lib/bundle.esm.mjs"
   },
   "scripts": {
-    "test": "jest",
+    "test": "jest test/bufferedEventEmitter.test.ts",
     "build:esm": "tsc --module es6 --outDir lib/esm",
     "build:umd": "tsc --module umd --outDir lib/umd",
     "build:bundle": "rollup -c",

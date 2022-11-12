@@ -1,10 +1,10 @@
-import { Listener, ListenerOptions } from "./types";
+import { EventData, Listener, ListenerOptions } from "./types";
 
 export class EventProp {
   public fn: Listener;
   public once: boolean;
   public options: ListenerOptions;
-  public bucket?: any[];
+  public bucket?: EventData[];
   public timeoutID?: ReturnType<typeof setTimeout>;
 
   constructor(fn: Listener, once: boolean, options: ListenerOptions) {

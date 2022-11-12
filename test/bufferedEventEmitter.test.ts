@@ -1,11 +1,9 @@
 import { BufferedEventEmitter } from "../src";
 
-describe("BEmitter#emit", function () {
-  it("should return true when event is emitted and false when there are not events to emit", function () {
+describe("#emit", function () {
+  it("should return true when event is emitted and false when there are no events to emit", function () {
     const emitter = new BufferedEventEmitter();
-    const listener = () => {
-      console.log("bar emitted");
-    };
+    const listener = () => {};
     emitter.on("bar", listener);
     expect(emitter.emit("foo")).toBe(false);
     expect(emitter.emit("bar")).toBe(true);
@@ -42,28 +40,31 @@ describe("BEmitter#emit", function () {
   });
 });
 
-describe("BEmitter#on", function () {
+describe("#on", function () {
   it("should subscribe to event name provided", function () {
     const emitter = new BufferedEventEmitter();
     let count = 0;
     const listener = () => {
       count += 1;
     };
-    emitter.on("bar", listener);
+    expect(emitter.on("bar", listener)).toBe(true);
     emitter.emit("bar");
     emitter.emit("bar");
     emitter.emit("foo");
+
     expect(count).toBe(2);
   });
 
-  it("should dedupe listeners. If the combination of event name, listener and options is already present, the listener is not added a second time", function () {
+  it("should dedupe listeners", function () {
+    // If the combination of event name, listener and options is already present, the listener is not added a second time
     const emitter = new BufferedEventEmitter();
     let count = 0;
     const listener = () => {
       count += 1;
     };
-    emitter.on("bar", listener);
-    emitter.on("bar", listener);
+    expect(emitter.on("bar", listener)).toBe(true);
+    expect(emitter.on("bar", listener)).toBe(false);
+
     emitter.on("foo", listener);
     emitter.on("foo", listener);
     emitter.on("foo", listener);
@@ -72,5 +73,89 @@ describe("BEmitter#on", function () {
     expect(count).toBe(1);
     expect(emitter.listeners("bar").length).toBe(1);
     expect(emitter.listeners("foo").length).toBe(1);
+  });
+
+  it("should add buffered listener", function () {
+    const emitter = new BufferedEventEmitter();
+    const calls: number[][] = [];
+    const listener = (arr: number[]) => {
+      calls.push(arr);
+    };
+    emitter.on("bar", listener, { buffered: true, bufferCapacity: 2 });
+    emitter.emit("bar", 1);
+    expect(emitter.emit("bar", 2)).toBe(true);
+    emitter.emit("bar", 3);
+    emitter.emit("bar", 4);
+    expect(emitter.emit("bar", 5)).toBe(false);
+    expect(emitter.flush("bar")).toBe(true);
+    expect(calls).toEqual([[1, 2], [3, 4], [5]]);
+  });
+});
+
+describe("#once", function () {
+  it("should add a one-time listener for given event name", function () {
+    const emitter = new BufferedEventEmitter();
+    let count = 0;
+    function listener(arg: number) {
+      count += arg;
+    }
+    expect(emitter.once("ping", listener)).toBe(true);
+
+    emitter.emit("ping", 10);
+    expect(emitter.emit("ping", 10)).toBe(false);
+
+    expect(count).toBe(10);
+    expect(emitter.listeners("ping").length).toBe(0);
+  });
+
+  it("should add a one-time buffered listener for given event name", function () {
+    const emitter = new BufferedEventEmitter();
+    const calls: number[][] = [];
+    const listener = (arr: number[]) => {
+      calls.push(arr);
+    };
+    emitter.once("bar", listener, { buffered: true, bufferCapacity: 2 });
+    emitter.emit("bar", 1);
+    emitter.emit("bar", 2);
+    emitter.emit("bar", 3);
+    emitter.flush("bar");
+
+    expect(calls).toEqual([[1, 2]]);
+  });
+
+  it("should dedupe listeners", function () {
+    const emitter = new BufferedEventEmitter();
+    let count = 0;
+    const listener = (arg: number) => {
+      count += arg;
+    };
+    expect(emitter.once("bar", listener)).toBe(true);
+    expect(emitter.on("bar", listener)).toBe(false);
+    expect(emitter.once("bar", listener)).toBe(false);
+
+    emitter.emit("bar", 10);
+    expect(emitter.listeners("bar").length).toBe(0);
+    expect(emitter.emit("bar", 10)).toBe(false);
+    expect(count).toBe(10);
+  });
+});
+
+describe("#off", function () {
+  it("should remove listener, identified with given event name, listener and options", function () {
+    const emitter = new BufferedEventEmitter();
+    let count = 0;
+    const listener = (arg: number) => {
+      count += arg;
+    };
+    expect(emitter.on("bar", listener)).toBe(true);
+    emitter.on("bar", listener, { buffered: true });
+
+    expect(emitter.off("bar", listener)).toBe(true); // removes the 1st listener
+    emitter.emit("bar", 10);
+    expect(count).toBe(0);
+    expect(emitter.listeners("bar").length).toBe(1);
+    expect(emitter.off("bar", listener, { buffered: true })).toBe(true); // removes the 2nd listener with options
+    expect(emitter.listeners("bar").length).toBe(0);
+    expect(emitter.off("bar", listener)).toBe(false);
   });
 });

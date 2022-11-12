@@ -5,7 +5,7 @@ export type Events = {
 };
 
 export type ListenerOptions = {
-  buffered?: boolean;
+  buffered: boolean;
   bufferCapacity?: number;
 };
 

@@ -28,7 +28,7 @@
   - [on(eventName, listener, options?)](#oneventname-listener-options)
   - [once(eventName, listener, options?)](#onceeventname-listener-options)
   - [off(eventName, listener, options?)](#offeventname-listener-options)
-  - [flush(eventName, listener?, options?): boolean](#flusheventname-listener-options-boolean)
+  - [flush(eventName, listener?, options?)](#flusheventname-listener-options)
   - [pause(queueEmissions?, emissionInterval?)](#pausequeueemissions-emissioninterval)
   - [resume()](#resume)
   - [enableDebug(opts: { emit?, on?, off?})](#enabledebugopts--emit-on-off)
@@ -257,7 +257,7 @@ Returns `true` if listener was removed `false` otherwise.
 | listener  | Listener        | Yes      | Callback to be removed                 |
 | options   | ListenerOptions | No       | Config options for listener            |
 
-### flush(eventName, listener?, options?): boolean
+### flush(eventName, listener?, options?)
 
 ```typescript
 flush(eventName: string): boolean;
