@@ -1,0 +1,4 @@
+# Ignore artifacts:
+lib
+examples
+node_modules

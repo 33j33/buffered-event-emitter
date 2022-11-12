@@ -18,10 +18,7 @@ export class EventProp {
   }
 }
 
-export function checkListenerOptionsEquality(
-  obj1: ListenerOptions,
-  obj2: ListenerOptions
-) {
+export function checkListenerOptionsEquality(obj1: ListenerOptions, obj2: ListenerOptions) {
   if (!obj1 || !obj2) return false;
   const keys1 = Object.keys(obj1);
   const keys2 = Object.keys(obj2);
@@ -45,10 +42,7 @@ export function getListenerIdx(
   options: ListenerOptions
 ): number {
   for (let i = 0; i < events.length; i++) {
-    if (
-      events[i].fn === listener &&
-      checkListenerOptionsEquality(events[i].options, options)
-    ) {
+    if (events[i].fn === listener && checkListenerOptionsEquality(events[i].options, options)) {
       return i;
     }
   }

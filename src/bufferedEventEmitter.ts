@@ -1,9 +1,5 @@
 import { EventData, Events, Listener, ListenerOptions } from "./types";
-import {
-  EventProp,
-  getListenerIdx,
-  checkListenerOptionsEquality,
-} from "./utils";
+import { EventProp, getListenerIdx, checkListenerOptionsEquality } from "./utils";
 
 // when buffered
 const DEFAULT_BUFFER_CAPACITY = 5;
@@ -71,8 +67,7 @@ export class BufferedEventEmitter {
       if (event.options.buffered) {
         event?.bucket?.push(data);
         const bufferCapacity =
-          event.options.bufferCapacity ??
-          this._defaultListenerOptions.bufferCapacity;
+          event.options.bufferCapacity ?? this._defaultListenerOptions.bufferCapacity;
 
         if (event?.bucket && event.bucket.length >= bufferCapacity) {
           event.fn(event.bucket);
@@ -168,31 +163,26 @@ export class BufferedEventEmitter {
   }
 
   /**
-   * Flush all buffered events for listeners for given event name.
+   * Flush all buffered events for all listeners for given event name.
    * @param eventName
    * @returns true if any events were emitted, else false
    */
   public flush(eventName: string): boolean;
   /**
-   * Flush all buffered events for given combination of event name, listener and options.
+   * Flush all buffered events for listener identified by combination of given event name, listener and options.
    * @param eventName
    * @param listener
    * @param options
    * @returns true if any events were emitted, else false
    */
-  public flush(
-    eventName: string,
-    listener: Listener,
-    options: ListenerOptions
-  ): boolean;
+  public flush(eventName: string, listener: Listener, options: ListenerOptions): boolean;
   flush(eventName: string, listener?: Listener, options?: ListenerOptions) {
     let didAnyEmit = false;
     let emittedOnceListenerIndexes: number[] = [];
     this._events[eventName].forEach((event, idx) => {
       if (event.options.buffered && event?.bucket && event.bucket.length > 0) {
         const matchesListenerFn = listener && listener === event.fn;
-        const matchesOptions =
-          options && checkListenerOptionsEquality(options, event.options);
+        const matchesOptions = options && checkListenerOptionsEquality(options, event.options);
 
         const shouldFlush =
           (eventName && matchesListenerFn && matchesOptions) ||
@@ -347,17 +337,11 @@ export class BufferedEventEmitter {
       `%c[Event Type: ${type} | Event Name: ${eventName} | ${logTime}]`,
       "color: blue; font-size: 12px"
     );
-    console.log(
-      `%c[Event Data: ${eventData}}]`,
-      "color: #AD5D4E; font-size: 11px"
-    );
+    console.log(`%c[Event Data: ${eventData}}]`, "color: #AD5D4E; font-size: 11px");
     console.groupEnd();
   }
 
-  #emitAfterTimeout(
-    payload: { eventName: string; data?: EventData },
-    ms: number
-  ) {
+  #emitAfterTimeout(payload: { eventName: string; data?: EventData }, ms: number) {
     let timeoutId: ReturnType<typeof setTimeout>;
     return new Promise(
       (resolve) =>

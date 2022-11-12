@@ -65,11 +65,12 @@ describe("#on", function () {
     expect(emitter.on("bar", listener)).toBe(true);
     expect(emitter.on("bar", listener)).toBe(false);
 
-    emitter.on("foo", listener);
-    emitter.on("foo", listener);
-    emitter.on("foo", listener);
-    emitter.emit("bar");
+    expect(emitter.on("foo", listener, { buffered: true, bufferCapacity: 3 })).toBe(true);
 
+    expect(emitter.on("foo", listener, { buffered: true, bufferCapacity: 3 })).toBe(false);
+
+    emitter.emit("bar");
+    emitter.emit("foo");
     expect(count).toBe(1);
     expect(emitter.listeners("bar").length).toBe(1);
     expect(emitter.listeners("foo").length).toBe(1);
@@ -157,5 +158,47 @@ describe("#off", function () {
     expect(emitter.off("bar", listener, { buffered: true })).toBe(true); // removes the 2nd listener with options
     expect(emitter.listeners("bar").length).toBe(0);
     expect(emitter.off("bar", listener)).toBe(false);
+  });
+});
+
+describe("#flush", function () {
+  it("should flush buffered events for listener identified by event name, listener and options", function () {
+    const emitter = new BufferedEventEmitter();
+    const calls: number[][] = [];
+    const listener = (arr: number[]) => {
+      calls.push(arr);
+    };
+    emitter.on("bar", listener, { buffered: true, bufferCapacity: 3 });
+    emitter.on("bar", listener, { buffered: true, bufferCapacity: 2 });
+
+    expect(emitter.emit("bar", 1)).toBe(false);
+    expect(emitter.emit("bar", 2)).toBe(true);
+    expect(emitter.emit("bar", 3)).toBe(true);
+
+    expect(emitter.flush("bar", listener, { buffered: true, bufferCapacity: 2 })).toBe(true);
+
+    expect(calls).toEqual([[1, 2], [1, 2, 3], [3]]);
+  });
+  it("should flush buffered events for all listeners when only event name is provided", function () {
+    const emitter = new BufferedEventEmitter();
+    const calls: number[][] = [];
+    const listener = (arr: number[]) => {
+      calls.push(arr);
+    };
+    emitter.on("bar", listener, { buffered: true, bufferCapacity: 6 });
+    emitter.on("bar", listener, { buffered: true, bufferCapacity: 7 });
+    emitter.on("foo", listener, { buffered: true, bufferCapacity: 8 });
+    emitter.emit("bar", 1);
+    emitter.emit("bar", 2);
+    emitter.emit("bar", 3);
+    emitter.emit("foo", 1);
+    emitter.emit("foo", 2);
+    emitter.flush("bar");
+    emitter.flush("foo");
+    expect(calls).toEqual([
+      [1, 2, 3],
+      [1, 2, 3],
+      [1, 2],
+    ]);
   });
 });
