@@ -1,6 +1,6 @@
 import { BufferedEventEmitter } from "../src";
 
-describe("#emit", function () {
+describe("fn#emit", function () {
   it("should return true when event is emitted and false when there are no events to emit", function () {
     const emitter = new BufferedEventEmitter();
     const listener = () => {};
@@ -40,7 +40,7 @@ describe("#emit", function () {
   });
 });
 
-describe("#on", function () {
+describe("fn#on", function () {
   it("should subscribe to event name provided", function () {
     const emitter = new BufferedEventEmitter();
     let count = 0;
@@ -93,7 +93,7 @@ describe("#on", function () {
   });
 });
 
-describe("#once", function () {
+describe("fn#once", function () {
   it("should add a one-time listener for given event name", function () {
     const emitter = new BufferedEventEmitter();
     let count = 0;
@@ -141,7 +141,7 @@ describe("#once", function () {
   });
 });
 
-describe("#off", function () {
+describe("fn#off", function () {
   it("should remove listener, identified with given event name, listener and options", function () {
     const emitter = new BufferedEventEmitter();
     let count = 0;
@@ -161,7 +161,7 @@ describe("#off", function () {
   });
 });
 
-describe("#flush", function () {
+describe("fn#flush", function () {
   it("should flush buffered events for listener identified by event name, listener and options", function () {
     const emitter = new BufferedEventEmitter();
     const calls: number[][] = [];
@@ -200,5 +200,96 @@ describe("#flush", function () {
       [1, 2, 3],
       [1, 2],
     ]);
+  });
+});
+
+describe("fn#pause", function () {
+  it("should swallow events when emissions are not to be queued", function () {
+    const emitter = new BufferedEventEmitter();
+    const calls: number[] = [];
+    const listener = (arg: number) => {
+      calls.push(arg);
+    };
+    emitter.on("bar", listener);
+    emitter.on("foo", listener);
+    emitter.emit("bar", 1);
+    emitter.emit("foo", 1);
+    emitter.pause();
+    expect(emitter.emit("foo", 2)).toBe(false);
+    expect(emitter.emit("bar", 2)).toBe(false);
+    expect(calls).toEqual([1, 1]);
+  });
+
+  it("should queue events", function () {
+    const emitter = new BufferedEventEmitter();
+    let calls: number[] = [];
+    const listener = (arg: number) => {
+      calls.push(arg);
+    };
+    emitter.on("bar", listener);
+    emitter.on("foo", listener);
+    emitter.emit("bar", 1);
+    emitter.emit("foo", 1);
+    expect(calls).toEqual([1, 1]);
+    emitter.pause(true);
+    calls = [];
+    expect(emitter.emit("bar", 2)).toBe(false);
+    emitter.emit("bar", 3);
+    emitter.emit("bar", 4);
+    emitter.resume();
+    expect(calls).toEqual([2, 3, 4]);
+  });
+});
+
+describe("fn#resume", function () {
+  it("should resume and dequeue event synchronously", function () {
+    const emitter = new BufferedEventEmitter();
+    let calls: string[] = [];
+    const listener = (arg: string) => {
+      calls.push(arg);
+    };
+    emitter.on("bar", listener);
+    emitter.on("foo", listener, { buffered: true, bufferCapacity: 2 });
+    emitter.emit("foo", "foo-1");
+    emitter.emit("foo", "foo-2");
+    emitter.emit("foo", "foo-3");
+    expect(calls).toEqual([["foo-1", "foo-2"]]);
+    emitter.pause(true);
+    calls = [];
+    expect(emitter.emit("bar", "bar-1")).toBe(false);
+    emitter.emit("bar", "bar-2");
+    emitter.emit("bar", "bar-3");
+    emitter.emit("foo", "foo-4");
+    emitter.resume();
+    expect(calls).toEqual(["bar-1", "bar-2", "bar-3", ["foo-3", "foo-4"]]);
+  });
+
+  it("should resume and dequeue event asynchronously", async function () {
+    const emitter = new BufferedEventEmitter();
+    let calls: string[] = [];
+    let prevDequeuedTime: number = 0;
+    const timeInterval = 1000;
+    const listener = (arg: string) => {
+      if (prevDequeuedTime !== 0) {
+        const currentTime = performance.now();
+        const diff = currentTime - prevDequeuedTime;
+        expect(diff).toBeCloseTo(timeInterval);
+      }
+      calls.push(arg);
+    };
+    emitter.on("bar", listener);
+    emitter.on("foo", listener, { buffered: true, bufferCapacity: 2 });
+    emitter.emit("foo", "foo-1");
+    emitter.emit("foo", "foo-2");
+    emitter.emit("foo", "foo-3");
+    expect(calls).toEqual([["foo-1", "foo-2"]]);
+    emitter.pause(true, timeInterval);
+    calls = [];
+    expect(emitter.emit("bar", "bar-1")).toBe(false);
+    emitter.emit("bar", "bar-2");
+    emitter.emit("bar", "bar-3");
+    emitter.emit("foo", "foo-4");
+    await emitter.resume();
+    expect(calls).toEqual(["bar-1", "bar-2", "bar-3", ["foo-3", "foo-4"]]);
   });
 });
