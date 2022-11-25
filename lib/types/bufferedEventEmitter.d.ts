@@ -4,13 +4,13 @@ export declare class BufferedEventEmitter {
     protected _events: Events;
     protected _defaultListenerOptions: Required<ListenerOptions>;
     protected _status: "paused" | "emitting";
-    protected _shouldQueueEmissions: boolean;
+    protected _queueEmissions: boolean;
     protected _emissionInterval: number;
     protected _queue: {
         eventName: string;
         data?: EventData;
     }[];
-    protected static debugEnabled: {
+    protected static debugStatus: {
         emit: boolean;
         on: boolean;
         off: boolean;
@@ -61,13 +61,13 @@ export declare class BufferedEventEmitter {
      */
     off(eventName: string, listener: Listener, options?: ListenerOptions): boolean;
     /**
-     * Flush all buffered events for listeners for given event name.
+     * Flush all buffered events for all listeners for given event name.
      * @param eventName
      * @returns true if any events were emitted, else false
      */
     flush(eventName: string): boolean;
     /**
-     * Flush all buffered events for given combination of event name, listener and options.
+     * Flush all buffered events for listener identified by combination of given event name, listener and options.
      * @param eventName
      * @param listener
      * @param options
@@ -78,7 +78,7 @@ export declare class BufferedEventEmitter {
      * Pause event emissions. Any subsequent event emissions will be swallowed or queued and
      * their respective listeners will not be invoked until resume() is called.
      * @param queueEmissions if true, subsequent event emissions will be queued else swallowed
-     * @param emissionInterval interval for dequeueing queued events. if interval is 0, the events are dequeued synchronously else asynchronously but in order
+     * @param emissionInterval interval in ms for dequeueing queued events. if interval is 0, the events are dequeued synchronously else asynchronously but in order
      */
     pause(queueEmissions?: boolean, emissionInterval?: number): void;
     /**

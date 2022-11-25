@@ -3,7 +3,7 @@ export declare type Events = {
     [eventName: string]: EventProp[];
 };
 export declare type ListenerOptions = {
-    buffered?: boolean;
+    buffered: boolean;
     bufferCapacity?: number;
 };
 export declare type EventData = any;
