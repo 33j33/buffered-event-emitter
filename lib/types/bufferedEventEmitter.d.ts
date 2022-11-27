@@ -1,6 +1,5 @@
 import { EventData, Events, Listener, ListenerOptions } from "./types";
 export declare class BufferedEventEmitter {
-    #private;
     protected _events: Events;
     protected _defaultListenerOptions: Required<ListenerOptions>;
     protected _status: "paused" | "emitting";

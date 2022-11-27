@@ -1,5 +1,5 @@
 import { EventData, Events, Listener, ListenerOptions } from "./types";
-import { EventProp, getListenerIdx, checkListenerOptionsEquality } from "./utils";
+import { EventProp, getListenerIdx, checkListenerOptionsEquality, emitAfterTimeout } from "./utils";
 
 // when buffered
 const DEFAULT_BUFFER_CAPACITY = 5;
@@ -228,7 +228,7 @@ export class BufferedEventEmitter {
       if (this._emissionInterval > DEFAULT_EMISSION_INTERVAL) {
         const dequeueAsync = async () => {
           for (const item of this._queue) {
-            await this.#emitAfterTimeout(item, this._emissionInterval);
+            await emitAfterTimeout.call(this, item, this._emissionInterval);
           }
         };
         return dequeueAsync();
@@ -326,7 +326,7 @@ export class BufferedEventEmitter {
           eventData
         ).join(",")}`;
       }
-    } else if (type === "on" && typeof eventData === "function") {
+    } else if (["on", "off"].includes(type) && typeof eventData === "function") {
       eventData = eventData.toString();
     }
 
@@ -339,19 +339,6 @@ export class BufferedEventEmitter {
     );
     console.log(`%c[Event Data: ${eventData}}]`, "color: #AD5D4E; font-size: 11px");
     console.groupEnd();
-  }
-
-  #emitAfterTimeout(payload: { eventName: string; data?: EventData }, ms: number) {
-    let timeoutId: ReturnType<typeof setTimeout>;
-    return new Promise(
-      (resolve) =>
-        (timeoutId = setTimeout(() => {
-          this.emit(payload.eventName, payload.data);
-          resolve(true);
-        }, ms))
-    ).finally(() => {
-      clearTimeout(timeoutId);
-    });
   }
 
   /**

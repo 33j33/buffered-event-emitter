@@ -1,3 +1,4 @@
+import { BufferedEventEmitter } from "./bufferedEventEmitter";
 import { EventData, Listener, ListenerOptions } from "./types";
 
 export class EventProp {
@@ -47,4 +48,21 @@ export function getListenerIdx(
     }
   }
   return -1;
+}
+
+export function emitAfterTimeout(
+  this: BufferedEventEmitter,
+  payload: { eventName: string; data?: EventData },
+  ms: number
+) {
+  let timeoutId: ReturnType<typeof setTimeout>;
+  return new Promise(
+    (resolve) =>
+      (timeoutId = setTimeout(() => {
+        this.emit(payload.eventName, payload.data);
+        resolve(true);
+      }, ms))
+  ).finally(() => {
+    clearTimeout(timeoutId);
+  });
 }
