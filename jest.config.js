@@ -7,4 +7,8 @@ module.exports = {
       isolatedModules: true, // fix to speed up tests
     },
   },
+  moduleNameMapper: {
+    "^@buffered-event-emitter$": "<rootDir>/src"
+    // "^@buffered-event-emitter$": "<rootDir>/lib/bundle.esm.min.js"
+  }
 };

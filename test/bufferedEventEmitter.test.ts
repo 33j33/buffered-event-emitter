@@ -1,3 +1,5 @@
+// @ts-ignore
+// import { BufferedEventEmitter } from "@buffered-event-emitter"; // test different builds using moduleMapper
 import { BufferedEventEmitter } from "../src";
 
 describe("fn#emit", function () {
