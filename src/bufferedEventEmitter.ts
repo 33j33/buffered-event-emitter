@@ -1,5 +1,11 @@
-import { EventData, Events, Listener, ListenerOptions } from "./types";
-import { EventProp, getListenerIdx, checkListenerOptionsEquality, emitAfterTimeout } from "./utils";
+import { EventData, Events, InitOptions, Listener, ListenerOptions } from "./types";
+import {
+  EventProp,
+  getListenerIdx,
+  checkListenerOptionsEquality,
+  emitAfterTimeout,
+  logger,
+} from "./utils";
 
 // when buffered
 const DEFAULT_BUFFER_CAPACITY = 5;
@@ -9,18 +15,19 @@ const DEFAULT_EMISSION_INTERVAL = 0;
 
 export class BufferedEventEmitter {
   protected _events: Events;
-  protected _defaultListenerOptions: Required<ListenerOptions>;
+  protected _options: Required<InitOptions>;
   protected _status: "paused" | "emitting";
   protected _queueEmissions: boolean;
   protected _emissionInterval: number;
   protected _queue: { eventName: string; data?: EventData }[]; // stores buffered events
-  protected static debugStatus = { emit: false, on: false, off: false };
+  public static debugStatus = { emit: false, on: false, off: false };
 
-  constructor(options?: ListenerOptions) {
+  constructor(options?: InitOptions) {
     this._events = {};
-    this._defaultListenerOptions = {
+    this._options = {
       buffered: options?.buffered ?? false,
       bufferCapacity: options?.bufferCapacity ?? DEFAULT_BUFFER_CAPACITY,
+      logger: options?.logger ?? logger,
     };
     this._status = "emitting";
     this._queueEmissions = true;
@@ -66,14 +73,13 @@ export class BufferedEventEmitter {
       // buffered event handling
       if (event.options.buffered) {
         event?.bucket?.push(data);
-        const bufferCapacity =
-          event.options.bufferCapacity ?? this._defaultListenerOptions.bufferCapacity;
+        const bufferCapacity = event.options.bufferCapacity ?? this._options.bufferCapacity;
 
         if (event?.bucket && event.bucket.length >= bufferCapacity) {
           event.fn(event.bucket);
           didEmit = true;
           didAnyEmit = true;
-          this.logger("emit", eventName, event.bucket);
+          this._options.logger("emit", eventName, event.bucket);
           event.bucket = [];
         }
       } else {
@@ -81,7 +87,7 @@ export class BufferedEventEmitter {
         event.fn(data);
         didEmit = true;
         didAnyEmit = true;
-        this.logger("emit", eventName, data);
+        this._options.logger("emit", eventName, data);
       }
 
       // filter out once emitted events
@@ -101,11 +107,7 @@ export class BufferedEventEmitter {
    * @param options - Config options for listener
    * @returns listener status if it was added or not
    */
-  on(
-    eventName: string,
-    listener: Listener,
-    options: ListenerOptions = this._defaultListenerOptions
-  ): boolean {
+  on(eventName: string, listener: Listener, options: ListenerOptions = this._options): boolean {
     if (!this._events[eventName]) {
       this._events[eventName] = [];
     }
@@ -113,7 +115,7 @@ export class BufferedEventEmitter {
     let index = getListenerIdx(this._events[eventName], listener, options);
     if (index !== -1) return false;
     this._events[eventName].push(new EventProp(listener, false, options));
-    this.logger("on", eventName, listener);
+    this._options.logger("on", eventName, listener);
     return true;
   }
 
@@ -126,11 +128,7 @@ export class BufferedEventEmitter {
    * @param options - Config options for listener
    * @returns `true` if listener was added `false` otherwise.
    */
-  once(
-    eventName: string,
-    listener: Listener,
-    options: ListenerOptions = this._defaultListenerOptions
-  ): boolean {
+  once(eventName: string, listener: Listener, options: ListenerOptions = this._options): boolean {
     if (!this._events[eventName]) {
       this._events[eventName] = [];
     }
@@ -138,7 +136,7 @@ export class BufferedEventEmitter {
     let index = getListenerIdx(this._events[eventName], listener, options);
     if (index !== -1) return false;
     this._events[eventName].push(new EventProp(listener, true, options));
-    this.logger("on", eventName, listener);
+    this._options.logger("on", eventName, listener);
     return true;
   }
 
@@ -150,15 +148,11 @@ export class BufferedEventEmitter {
    * @param options - Config options for listener
    * @returns `true` if listener was removed `false` otherwise.
    */
-  off(
-    eventName: string,
-    listener: Listener,
-    options: ListenerOptions = this._defaultListenerOptions
-  ): boolean {
+  off(eventName: string, listener: Listener, options: ListenerOptions = this._options): boolean {
     let index = getListenerIdx(this._events[eventName], listener, options);
     if (index === -1) return false;
     this._events[eventName].splice(index, 1);
-    this.logger("off", eventName, listener);
+    this._options.logger("off", eventName, listener);
     return true;
   }
 
@@ -191,7 +185,7 @@ export class BufferedEventEmitter {
         if (shouldFlush) {
           event.fn(event.bucket);
           didAnyEmit = true;
-          this.logger("emit", eventName, event.bucket);
+          this._options.logger("emit", eventName, event.bucket);
           event.bucket = [];
           if (event.once) emittedOnceListenerIndexes.push(idx);
         }
@@ -246,7 +240,7 @@ export class BufferedEventEmitter {
    * @param eventName - event name
    * @returns `true` if any listener was removed for the event `false` otherwise.
    */
-  removeListeners(eventName: string): Boolean {
+  offAll(eventName: string): Boolean {
     if (eventName && this._events[eventName]?.length > 0) {
       delete this._events[eventName];
       this._queue = this._queue.filter((e) => e.eventName !== eventName);
@@ -272,75 +266,6 @@ export class BufferedEventEmitter {
     }
   }
 
-  // aliases
-
-  /**
-   * Adds an event listener for given event name and options.
-   * If the combination of listener and options is already present the given event name the listener is not added a second time.
-   * @param eventName - Name of the event, listener was added to
-   * @param listener - Function that will be called each time event is emitted
-   * @param options - Config options for listener
-   * @returns listener status if it was added or not
-   */
-  addListener(
-    eventName: string,
-    listener: Listener,
-    options: ListenerOptions = this._defaultListenerOptions
-  ): boolean {
-    return this.on(eventName, listener, options);
-  }
-
-  /**
-   * Removes an event listener previously registered with on() or addListener().
-   * The event listener to be removed is identified using a combination of the event name, the event listener function itself, and provided options
-   * @param eventName  Name of the event, listener will be added to
-   * @param listener - Listener function to be removed from the registered listeners array
-   * @param options - Config options for listener
-   * @returns listener status if it was removed or not
-   */
-  removeListener(
-    eventName: string,
-    listener: Listener,
-    options: ListenerOptions = this._defaultListenerOptions
-  ): boolean {
-    return this.off(eventName, listener, options);
-  }
-
-  protected logger(
-    type: "emit" | "on" | "off",
-    eventName: string,
-    eventData?: EventData | Listener
-  ) {
-    if (
-      (type === "emit" && !BufferedEventEmitter.debugStatus.emit) ||
-      (type === "on" && !BufferedEventEmitter.debugStatus.on) ||
-      (type === "off" && !BufferedEventEmitter.debugStatus.off)
-    )
-      return;
-
-    if (type === "emit") {
-      try {
-        eventData = JSON.stringify(eventData);
-      } catch {
-        eventData = `Object with the following keys failed to stringify: ${Object.keys(
-          eventData
-        ).join(",")}`;
-      }
-    } else if (["on", "off"].includes(type) && typeof eventData === "function") {
-      eventData = eventData.toString();
-    }
-
-    const currentTime = new Date();
-    const logTime = `${currentTime.getHours()}:${currentTime.getMinutes()}:${currentTime.getSeconds()}.${currentTime.getMilliseconds()}`;
-
-    console.groupCollapsed(
-      `%c[Event Type: ${type} | Event Name: ${eventName} | ${logTime}]`,
-      "color: blue; font-size: 12px"
-    );
-    console.log(`%c[Event Data: ${eventData}}]`, "color: #AD5D4E; font-size: 11px");
-    console.groupEnd();
-  }
-
   /**
    * Enable debugging for all instances of the emitter
    * @param opts
@@ -352,3 +277,28 @@ export class BufferedEventEmitter {
     };
   }
 }
+
+// Aliases
+export interface BufferedEventEmitter {
+  /**
+   * Alias for on(eventName, listener, options?). Adds an event listener for given event name and options.
+   * If the combination of listener and options is already present the given event name the listener is not added a second time.
+   * @param eventName - Name of the event, listener was added to
+   * @param listener - Function that will be called each time event is emitted
+   * @param options - Config options for listener
+   * @returns listener status if it was added or not
+   */
+  addListener: typeof BufferedEventEmitter.prototype.on;
+
+  /**
+   * Alias for off(eventName, listener, options?). Removes an event listener previously registered with on() or addListener().
+   * The event listener to be removed is identified using a combination of the event name, the event listener function itself, and provided options
+   * @param eventName  Name of the event, listener will be added to
+   * @param listener - Listener function to be removed from the registered listeners array
+   * @param options - Config options for listener
+   * @returns listener status if it was removed or not
+   */
+  removeListener: typeof BufferedEventEmitter.prototype.off;
+}
+BufferedEventEmitter.prototype.addListener = BufferedEventEmitter.prototype.on;
+BufferedEventEmitter.prototype.removeListener = BufferedEventEmitter.prototype.off;

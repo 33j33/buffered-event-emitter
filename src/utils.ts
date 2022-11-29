@@ -66,3 +66,38 @@ export function emitAfterTimeout(
     clearTimeout(timeoutId);
   });
 }
+
+export function logger(
+  type: "emit" | "on" | "off",
+  eventName: string,
+  eventData?: EventData | Listener
+) {
+  if (
+    (type === "emit" && !BufferedEventEmitter.debugStatus.emit) ||
+    (type === "on" && !BufferedEventEmitter.debugStatus.on) ||
+    (type === "off" && !BufferedEventEmitter.debugStatus.off)
+  )
+    return;
+
+  if (type === "emit") {
+    try {
+      eventData = JSON.stringify(eventData);
+    } catch {
+      eventData = `Object with the following keys failed to stringify: ${Object.keys(
+        eventData
+      ).join(",")}`;
+    }
+  } else if (["on", "off"].includes(type) && typeof eventData === "function") {
+    eventData = eventData.toString();
+  }
+
+  const currentTime = new Date();
+  const logTime = `${currentTime.getHours()}:${currentTime.getMinutes()}:${currentTime.getSeconds()}.${currentTime.getMilliseconds()}`;
+
+  console.groupCollapsed(
+    `%c[Event Type: ${type} | Event Name: ${eventName} | ${logTime}]`,
+    "color: blue; font-size: 12px"
+  );
+  console.log(`%c[Event Data: ${eventData}}]`, "color: #AD5D4E; font-size: 11px");
+  console.groupEnd();
+}
