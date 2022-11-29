@@ -14,4 +14,5 @@ export declare function emitAfterTimeout(this: BufferedEventEmitter, payload: {
     eventName: string;
     data?: EventData;
 }, ms: number): Promise<unknown>;
+export declare function logger(type: "emit" | "on" | "off", eventName: string, eventData?: EventData | Listener): void;
 //# sourceMappingURL=utils.d.ts.map

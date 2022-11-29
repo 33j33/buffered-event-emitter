@@ -1,7 +1,7 @@
-import { EventData, Events, Listener, ListenerOptions } from "./types";
+import { EventData, Events, InitOptions, Listener, ListenerOptions } from "./types";
 export declare class BufferedEventEmitter {
     protected _events: Events;
-    protected _defaultListenerOptions: Required<ListenerOptions>;
+    protected _options: Required<InitOptions>;
     protected _status: "paused" | "emitting";
     protected _queueEmissions: boolean;
     protected _emissionInterval: number;
@@ -9,12 +9,12 @@ export declare class BufferedEventEmitter {
         eventName: string;
         data?: EventData;
     }[];
-    protected static debugStatus: {
+    static debugStatus: {
         emit: boolean;
         on: boolean;
         off: boolean;
     };
-    constructor(options?: ListenerOptions);
+    constructor(options?: InitOptions);
     /**
      *
      * Synchronously invokes each of the listeners registered for the event named eventName in the order they were registered.
@@ -90,32 +90,13 @@ export declare class BufferedEventEmitter {
      * @param eventName - event name
      * @returns `true` if any listener was removed for the event `false` otherwise.
      */
-    removeListeners(eventName: string): Boolean;
+    offAll(eventName: string): Boolean;
     /**
      * Removes all listeners and queued events for the instance.
      */
     cleanup(): void;
     listeners(): Events;
     listeners(eventName: string): Listener[];
-    /**
-     * Adds an event listener for given event name and options.
-     * If the combination of listener and options is already present the given event name the listener is not added a second time.
-     * @param eventName - Name of the event, listener was added to
-     * @param listener - Function that will be called each time event is emitted
-     * @param options - Config options for listener
-     * @returns listener status if it was added or not
-     */
-    addListener(eventName: string, listener: Listener, options?: ListenerOptions): boolean;
-    /**
-     * Removes an event listener previously registered with on() or addListener().
-     * The event listener to be removed is identified using a combination of the event name, the event listener function itself, and provided options
-     * @param eventName  Name of the event, listener will be added to
-     * @param listener - Listener function to be removed from the registered listeners array
-     * @param options - Config options for listener
-     * @returns listener status if it was removed or not
-     */
-    removeListener(eventName: string, listener: Listener, options?: ListenerOptions): boolean;
-    protected logger(type: "emit" | "on" | "off", eventName: string, eventData?: EventData | Listener): void;
     /**
      * Enable debugging for all instances of the emitter
      * @param opts
@@ -125,5 +106,25 @@ export declare class BufferedEventEmitter {
         on?: boolean;
         off?: boolean;
     }): void;
+}
+export interface BufferedEventEmitter {
+    /**
+     * Alias for on(eventName, listener, options?). Adds an event listener for given event name and options.
+     * If the combination of listener and options is already present the given event name the listener is not added a second time.
+     * @param eventName - Name of the event, listener was added to
+     * @param listener - Function that will be called each time event is emitted
+     * @param options - Config options for listener
+     * @returns listener status if it was added or not
+     */
+    addListener: typeof BufferedEventEmitter.prototype.on;
+    /**
+     * Alias for off(eventName, listener, options?). Removes an event listener previously registered with on() or addListener().
+     * The event listener to be removed is identified using a combination of the event name, the event listener function itself, and provided options
+     * @param eventName  Name of the event, listener will be added to
+     * @param listener - Listener function to be removed from the registered listeners array
+     * @param options - Config options for listener
+     * @returns listener status if it was removed or not
+     */
+    removeListener: typeof BufferedEventEmitter.prototype.off;
 }
 //# sourceMappingURL=bufferedEventEmitter.d.ts.map
