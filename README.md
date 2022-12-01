@@ -162,8 +162,9 @@ Type: `object`
 
 ```typescript
 {
- buffered?: boolean | undefined;
- bufferCapacity?: number | undefined;
+ buffered?: boolean;
+ bufferCapacity?: number;
+ logged?: Function;
 }
 ```
 
@@ -181,6 +182,13 @@ Type: `number`\
 Default: `5`
 
 Configure buffer capacity. Default capacity of 5 means event listener will receive event data every 5 emissions.
+
+#### `logger` <!-- omit in toc -->
+
+Type: `(type: "emit" | "on" | "off", eventName: string, eventData?: EventData | Listener) => void`
+Default: `logger` in utils https://github.com/33j33/buffered-event-emitter/blob/develop/src/utils.ts
+
+Add a custom logger.
 
 ### emit(eventName, data?)
 
