@@ -1,10 +1,12 @@
 import { EventData, Events, InitOptions, Listener, ListenerOptions } from "./types";
 import {
   EventProp,
+  EventController,
   getListenerIdx,
   checkListenerOptionsEquality,
   emitAfterTimeout,
   logger,
+  attachControls,
 } from "./utils";
 
 // when buffered
@@ -19,7 +21,8 @@ export class BufferedEventEmitter {
   protected _status: "paused" | "emitting";
   protected _queueEmissions: boolean;
   protected _emissionInterval: number;
-  protected _queue: { eventName: string; data?: EventData }[]; // stores buffered events
+  protected _queue: { eventName: string; data?: EventData }[]; // stores queued events
+
   public static debugStatus = { emit: false, on: false, off: false };
 
   constructor(options?: InitOptions) {
@@ -71,9 +74,9 @@ export class BufferedEventEmitter {
       let didEmit = false;
 
       // buffered event handling
-      if (event.options.buffered) {
+      if (event?.options?.buffered) {
         event?.bucket?.push(data);
-        const bufferCapacity = event.options.bufferCapacity ?? this._options.bufferCapacity;
+        const bufferCapacity = event?.options.bufferCapacity ?? this._options.bufferCapacity;
 
         if (event?.bucket && event.bucket.length >= bufferCapacity) {
           event.fn(event.bucket);
@@ -107,14 +110,18 @@ export class BufferedEventEmitter {
    * @param options - Config options for listener
    * @returns listener status if it was added or not
    */
-  on(eventName: string, listener: Listener, options: ListenerOptions = this._options): boolean {
+  on(eventName: string, listener: Listener, options?: ListenerOptions): boolean {
     if (!this._events[eventName]) {
       this._events[eventName] = [];
     }
     // dedupe listeners
     let index = getListenerIdx(this._events[eventName], listener, options);
     if (index !== -1) return false;
-    this._events[eventName].push(new EventProp(listener, false, options));
+    const eventProp = new EventProp(eventName, listener, false, options);
+    if (options?.control instanceof EventController) {
+      attachControls.call(this, options.control, eventProp);
+    }
+    this._events[eventName].push(eventProp);
     this._options.logger("on", eventName, listener);
     return true;
   }
@@ -128,14 +135,18 @@ export class BufferedEventEmitter {
    * @param options - Config options for listener
    * @returns `true` if listener was added `false` otherwise.
    */
-  once(eventName: string, listener: Listener, options: ListenerOptions = this._options): boolean {
+  once(eventName: string, listener: Listener, options?: ListenerOptions): boolean {
     if (!this._events[eventName]) {
       this._events[eventName] = [];
     }
     // dedupe listeners
     let index = getListenerIdx(this._events[eventName], listener, options);
     if (index !== -1) return false;
-    this._events[eventName].push(new EventProp(listener, true, options));
+    const eventProp = new EventProp(eventName, listener, true, options);
+    if (options?.control instanceof EventController) {
+      attachControls.call(this, options.control, eventProp);
+    }
+    this._events[eventName].push(eventProp);
     this._options.logger("on", eventName, listener);
     return true;
   }
@@ -148,7 +159,7 @@ export class BufferedEventEmitter {
    * @param options - Config options for listener
    * @returns `true` if listener was removed `false` otherwise.
    */
-  off(eventName: string, listener: Listener, options: ListenerOptions = this._options): boolean {
+  off(eventName: string, listener: Listener, options?: ListenerOptions): boolean {
     let index = getListenerIdx(this._events[eventName], listener, options);
     if (index === -1) return false;
     this._events[eventName].splice(index, 1);
@@ -169,12 +180,12 @@ export class BufferedEventEmitter {
    * @param options
    * @returns true if any events were emitted, else false
    */
-  public flush(eventName: string, listener: Listener, options: ListenerOptions): boolean;
+  public flush(eventName: string, listener: Listener, options?: ListenerOptions): boolean;
   flush(eventName: string, listener?: Listener, options?: ListenerOptions) {
     let didAnyEmit = false;
     let emittedOnceListenerIndexes: number[] = [];
     this._events[eventName].forEach((event, idx) => {
-      if (event.options.buffered && event?.bucket && event.bucket.length > 0) {
+      if (event?.options?.buffered && event?.bucket && event.bucket.length > 0) {
         const matchesListenerFn = listener && listener === event.fn;
         const matchesOptions = options && checkListenerOptionsEquality(options, event.options);
 

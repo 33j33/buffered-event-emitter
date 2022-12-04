@@ -2,13 +2,15 @@ import { BufferedEventEmitter } from "./bufferedEventEmitter";
 import { EventData, Listener, ListenerOptions } from "./types";
 
 export class EventProp {
+  public name: string;
   public fn: Listener;
   public once: boolean;
-  public options: ListenerOptions;
+  public options: ListenerOptions | undefined;
   public bucket?: EventData[];
   public timeoutID?: ReturnType<typeof setTimeout>;
 
-  constructor(fn: Listener, once: boolean, options: ListenerOptions) {
+  constructor(name: string, fn: Listener, once: boolean, options: ListenerOptions | undefined) {
+    this.name = name;
     this.fn = fn;
     this.once = once;
     this.options = options;
@@ -19,7 +21,16 @@ export class EventProp {
   }
 }
 
-export function checkListenerOptionsEquality(obj1: ListenerOptions, obj2: ListenerOptions) {
+export class EventController {
+  flush() {}
+  off() {}
+}
+
+export function checkListenerOptionsEquality(
+  obj1: ListenerOptions | undefined,
+  obj2: ListenerOptions | undefined
+) {
+  if (obj1 === obj2) return true;
   if (!obj1 || !obj2) return false;
   const keys1 = Object.keys(obj1);
   const keys2 = Object.keys(obj2);
@@ -40,7 +51,7 @@ export function checkListenerOptionsEquality(obj1: ListenerOptions, obj2: Listen
 export function getListenerIdx(
   events: EventProp[],
   listener: Listener,
-  options: ListenerOptions
+  options: ListenerOptions | undefined
 ): number {
   for (let i = 0; i < events.length; i++) {
     if (events[i].fn === listener && checkListenerOptionsEquality(events[i].options, options)) {
@@ -100,4 +111,26 @@ export function logger(
   );
   console.log(`%c[Event Data: ${eventData}}]`, "color: #AD5D4E; font-size: 11px");
   console.groupEnd();
+}
+
+const controls: Map<EventController, EventProp[]> = new Map();
+
+export function attachControls(
+  this: BufferedEventEmitter,
+  control: EventController,
+  eventProp: EventProp
+) {
+  const eventProps = controls.get(control) || [];
+  eventProps.push(eventProp);
+  controls.set(control, eventProps);
+  control.off = () => {
+    eventProps.forEach((p) => {
+      this.off(p.name, p.fn, p.options);
+    });
+  };
+  control.flush = () => {
+    eventProps.forEach((p) => {
+      this.flush(p.name, p.fn, p.options);
+    });
+  };
 }

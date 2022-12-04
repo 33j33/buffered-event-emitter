@@ -72,7 +72,7 @@ export declare class BufferedEventEmitter {
      * @param options
      * @returns true if any events were emitted, else false
      */
-    flush(eventName: string, listener: Listener, options: ListenerOptions): boolean;
+    flush(eventName: string, listener: Listener, options?: ListenerOptions): boolean;
     /**
      * Pause event emissions. Any subsequent event emissions will be swallowed or queued and
      * their respective listeners will not be invoked until resume() is called.

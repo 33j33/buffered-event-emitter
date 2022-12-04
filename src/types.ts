@@ -1,15 +1,18 @@
-import { EventProp, logger } from "./utils";
+import { EventController, EventProp, logger } from "./utils";
 
 export type Events = {
   [eventName: string]: EventProp[];
 };
 
 export type ListenerOptions = {
-  buffered: boolean;
+  buffered?: boolean;
   bufferCapacity?: number;
+  control?: EventController;
 };
 
-export type InitOptions = Partial<ListenerOptions> & {
+export type BufferOptions = Omit<ListenerOptions, "control">;
+
+export type InitOptions = BufferOptions & {
   logger?: typeof logger;
 };
 
