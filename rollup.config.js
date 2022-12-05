@@ -4,7 +4,10 @@ import pkg from "./package.json";
 const footer = () => {
   return new Promise((resolve) => {
     resolve(
-      `(function () { if (typeof window !== "undefined") window.BufferedEventEmitter = window["${pkg.name}"].BufferedEventEmitter})()`
+      `(function () { if (typeof window !== "undefined") {
+        window.BufferedEventEmitter = window["${pkg.name}"].BufferedEventEmitter
+        window.EventController = window["${pkg.name}"].EventController
+      }})()`
     );
   });
 };

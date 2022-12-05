@@ -4,7 +4,9 @@
 
 // reset Module before each test
 let BufferedEventEmitter: typeof import("../src").BufferedEventEmitter;
+let EventController: typeof import("../src").EventController;
 beforeEach(async () => {
+  EventController = (await import("../src")).EventController;
   BufferedEventEmitter = (await import("../src")).BufferedEventEmitter;
   jest.resetModules();
 });
@@ -19,7 +21,7 @@ describe("#init", function () {
   });
 });
 
-describe("fn#enableDebug", function () {
+describe("fn#enableDebug()", function () {
   it("should enable logging for all instances of Emitter", function () {
     const logs: string[] = [];
     const logger = (type: "emit" | "on" | "off", eventname: string, eventdata?: any) => {
@@ -41,7 +43,7 @@ describe("fn#enableDebug", function () {
   });
 });
 
-describe("fn#emit", function () {
+describe("fn#emit()", function () {
   it("should return true when event is emitted and false when there are no events to emit", function () {
     const emitter = new BufferedEventEmitter();
     const listener = () => {};
@@ -81,7 +83,7 @@ describe("fn#emit", function () {
   });
 });
 
-describe("fn#on", function () {
+describe("fn#on()", function () {
   it("should subscribe to event name provided", function () {
     const emitter = new BufferedEventEmitter();
     let count = 0;
@@ -134,7 +136,7 @@ describe("fn#on", function () {
   });
 });
 
-describe("fn#once", function () {
+describe("fn#once()", function () {
   it("should add a one-time listener for given event name", function () {
     const emitter = new BufferedEventEmitter();
     let count = 0;
@@ -182,7 +184,7 @@ describe("fn#once", function () {
   });
 });
 
-describe("fn#off", function () {
+describe("fn#off()", function () {
   it("should remove listener, identified with given event name, listener and options", function () {
     const emitter = new BufferedEventEmitter();
     let count = 0;
@@ -202,7 +204,7 @@ describe("fn#off", function () {
   });
 });
 
-describe("fn#flush", function () {
+describe("fn#flush()", function () {
   it("should flush buffered events for listener identified by event name, listener and options", function () {
     const emitter = new BufferedEventEmitter();
     const calls: number[][] = [];
@@ -244,7 +246,7 @@ describe("fn#flush", function () {
   });
 });
 
-describe("fn#pause", function () {
+describe("fn#pause()", function () {
   it("should swallow events when emissions are not to be queued", function () {
     const emitter = new BufferedEventEmitter();
     const calls: number[] = [];
@@ -282,7 +284,7 @@ describe("fn#pause", function () {
   });
 });
 
-describe("fn#resume", function () {
+describe("fn#resume()", function () {
   it("should resume and dequeue event synchronously", function () {
     const emitter = new BufferedEventEmitter();
     let calls: string[] = [];
@@ -332,5 +334,54 @@ describe("fn#resume", function () {
     emitter.emit("foo", "foo-4");
     await emitter.resume();
     expect(calls).toStrictEqual(["bar-1", "bar-2", "bar-3", ["foo-3", "foo-4"]]);
+  });
+});
+
+describe("fn#control.off()", function () {
+  it("should remove all listeners that have been given `control` param in options", function () {
+    const emitter = new BufferedEventEmitter();
+    let count = 0;
+    const listener = (arg: number) => {
+      count += arg;
+    };
+    const control = new EventController();
+    emitter.on("foo", listener, { control });
+    emitter.on("bar", listener, { control });
+    emitter.on("baz", listener, { control });
+    emitter.on("abc", listener);
+    expect(emitter.off("foo", listener)).toBe(false);
+    control.off();
+    expect(emitter.emit("foo", 1)).toBe(false);
+    expect(emitter.emit("bar", 1)).toBe(false);
+    expect(emitter.emit("baz", 1)).toBe(false);
+    expect(emitter.listeners("foo").length).toBe(0);
+    expect(emitter.listeners("abc").length).toBe(1);
+    expect(count).toBe(0);
+  });
+});
+
+describe("fn#control.flush()", function () {
+  it("should flush all listeners that have been given `control` param in options", function () {
+    const emitter = new BufferedEventEmitter();
+    const control = new EventController();
+    const calls: number[][] = [];
+    const listenerOne = (arr: number[]) => {
+      calls.push(arr);
+    };
+    const listenerTwo = (arr: number[]) => {
+      calls.push(arr);
+    };
+    emitter.on("bar", listenerOne, { buffered: true, bufferCapacity: 4, control });
+    emitter.on("bar", listenerOne, { buffered: true, bufferCapacity: 5, control });
+    emitter.on("foo", listenerOne, { buffered: true, bufferCapacity: 6, control });
+    emitter.on("taz", listenerTwo, { buffered: true, bufferCapacity: 2, control });
+    emitter.emit("bar", 1);
+    emitter.emit("bar", 2);
+    emitter.emit("bar", 3);
+    emitter.emit("foo", 1);
+    emitter.emit("foo", 2);
+    emitter.emit("taz", 1);
+    control.flush();
+    expect(calls).toStrictEqual([[1, 2, 3], [1, 2, 3], [1, 2], [1]]);
   });
 });
