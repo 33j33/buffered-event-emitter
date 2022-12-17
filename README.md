@@ -11,7 +11,7 @@
 - Buffer events with configurable buffer capacity.
 - Pause and resume event emission.
 - Log event emission, adding and removing listeners (`emit`, `on`, `off` actions).
-- Tiny, 4.5kb minified.
+- Tiny, 4.7kb minified.
 - Works for both nodejs and browser.
 - Based on [node events api](https://nodejs.org/api/events.html)
 - Typescript support
@@ -29,8 +29,8 @@
   - [once(eventName, listener, options?)](#onceeventname-listener-options)
   - [off(eventName, listener, options?)](#offeventname-listener-options)
   - [flush(eventName, listener?, options?)](#flusheventname-listener-options)
-  - [pause(queueEmissions?, emissionInterval?)](#pausequeueemissions-emissioninterval)
-  - [resume()](#resume)
+  - [pause(opts?: {queueEmissions?, emissionInterval?, eventName?})](#pauseopts-queueemissions-emissioninterval-eventname)
+  - [resume(eventName?)](#resumeeventname)
   - [enableDebug(opts: { emit?, on?, off?})](#enabledebugopts--emit-on-off)
 
 ## Install
@@ -164,7 +164,7 @@ Type: `object`
 {
  buffered?: boolean;
  bufferCapacity?: number;
- logged?: Function;
+ logger?: Function;
 }
 ```
 
@@ -185,7 +185,7 @@ Configure buffer capacity. Default capacity of 5 means event listener will recei
 
 #### `logger` <!-- omit in toc -->
 
-Type: `(type: "emit" | "on" | "off", eventName: string, eventData?: EventData | Listener) => void`
+Type: `(type: "emit" | "on" | "off", eventName: string, eventData?: EventData | Listener) => void`  
 Default: `logger` in utils https://github.com/33j33/buffered-event-emitter/blob/develop/src/utils.ts
 
 Add a custom logger.
@@ -283,29 +283,29 @@ Returns `true` if any events were flushed (emitted), `false` otherwise.
 | listener  | Listener        | No       | Callback which was registered earlier                       |
 | options   | ListenerOptions | No       | Config options which were passed while registering callback |
 
-### pause(queueEmissions?, emissionInterval?)
+### pause(opts?: {queueEmissions?, emissionInterval?, eventName?})
 
 ```typescript
-pause(queueEmissions: boolean = true, emissionInterval: number = 0): void
+pause(opts?: {queueEmissions?: boolean = true, emissionInterval?: number = 0, eventName?: string}): void
 ```
 
-Pause event emissions. Any subsequent event emissions will be swallowed or queued and
-their respective listeners will not be invoked until `resume()` is called.
+Pause event emissions for all or given event. Any subsequent event emissions will be swallowed or queued and
+their respective listeners will not be invoked until `resume()` is called. If event name is provided, only the particular event is paused.
 
 | Argument         | Type    | Required | Description                                                                                                                     |
 | ---------------- | ------- | -------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | queueEmissions   | boolean | No       | if true, subsequent event emissions will be queued else swallowed and the corresponding listeners not invoked.                  |
 | emissionInterval | number  | No       | interval for dequeueing queued events. if interval is 0, the events are dequeued synchronously else asynchronously but in order |
+| eventName        | string  | No       | name for the event to be paused                                                                                                 |
 
-### resume()
+### resume(eventName?)
 
 ```typescript
-resume(): Promise<void> | void
+resume(eventName?: string): Promise<void> | void
 ```
 
-Resumes event emission.
-It returns a Promise if emission interval was greater than 0 when event emission was paused using
-`pause()`
+Resumes event emission for all events or provided event.
+Emits event asynchronously and returns a Promise if value of emission interval was greater than 0 when event emission was paused using `pause(opts?)` or else emits event synchronously. If eventName is provided resumes event emission for that particular event only.
 
 ### enableDebug(opts: { emit?, on?, off?})
 

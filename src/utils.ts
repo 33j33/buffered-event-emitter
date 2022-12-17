@@ -1,6 +1,10 @@
 import { BufferedEventEmitter } from "./bufferedEventEmitter";
+import { ALL_EVENTS } from "./constants";
 import { EventData, Listener, ListenerOptions } from "./types";
 
+/**
+ * Event Properties
+ */
 export class EventProp {
   public name: string;
   public fn: Listener;
@@ -18,6 +22,47 @@ export class EventProp {
       this.bucket = [];
       this.timeoutID = undefined;
     }
+  }
+}
+
+type PauseEventName = string | typeof ALL_EVENTS;
+// Paused Event Properties
+export class PausedEvtsProp {
+  public name: PauseEventName; // eventname
+  public shouldQueue: boolean;
+  public interval: number; // emission interval
+  public status: "paused" | "emitting";
+  constructor(
+    name: PauseEventName,
+    status: "paused" | "emitting",
+    shouldQueue: boolean,
+    interval: number
+  ) {
+    this.name = name;
+    this.status = status;
+    this.shouldQueue = shouldQueue;
+    this.interval = interval;
+  }
+  updateProps({
+    status,
+    shouldQueue,
+    interval,
+  }: {
+    status?: "paused" | "emitting";
+    shouldQueue?: boolean;
+    interval?: number;
+  }) {
+    if (status) this.status = status;
+    if (shouldQueue !== undefined) this.shouldQueue = shouldQueue;
+    if (interval !== undefined) this.interval = interval;
+  }
+  getProps() {
+    return {
+      status: this.status,
+      shouldQueue: this.shouldQueue,
+      interval: this.interval,
+      name: this.name,
+    };
   }
 }
 
@@ -63,14 +108,14 @@ export function getListenerIdx(
 
 export function emitAfterTimeout(
   this: BufferedEventEmitter,
-  payload: { eventName: string; data?: EventData },
+  payload: { name: string; data?: EventData },
   ms: number
 ) {
   let timeoutId: ReturnType<typeof setTimeout>;
   return new Promise(
     (resolve) =>
       (timeoutId = setTimeout(() => {
-        this.emit(payload.eventName, payload.data);
+        this.emit(payload.name, payload.data);
         resolve(true);
       }, ms))
   ).finally(() => {

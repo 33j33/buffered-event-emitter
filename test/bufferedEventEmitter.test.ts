@@ -247,7 +247,7 @@ describe("fn#flush()", function () {
 });
 
 describe("fn#pause()", function () {
-  it("should swallow events when emissions are not to be queued", function () {
+  it("should swallow event emission when emissions are not to be queued", function () {
     const emitter = new BufferedEventEmitter();
     const calls: number[] = [];
     const listener = (arg: number) => {
@@ -257,13 +257,14 @@ describe("fn#pause()", function () {
     emitter.on("foo", listener);
     emitter.emit("bar", 1);
     emitter.emit("foo", 1);
-    emitter.pause();
+    emitter.pause({ queueEmissions: false });
     expect(emitter.emit("foo", 2)).toBe(false);
     expect(emitter.emit("bar", 2)).toBe(false);
+    emitter.resume();
     expect(calls).toStrictEqual([1, 1]);
   });
 
-  it("should queue events", function () {
+  it("should pause events and queue event emissions", function () {
     const emitter = new BufferedEventEmitter();
     let calls: number[] = [];
     const listener = (arg: number) => {
@@ -274,7 +275,7 @@ describe("fn#pause()", function () {
     emitter.emit("bar", 1);
     emitter.emit("foo", 1);
     expect(calls).toStrictEqual([1, 1]);
-    emitter.pause(true);
+    emitter.pause();
     calls = [];
     expect(emitter.emit("bar", 2)).toBe(false);
     emitter.emit("bar", 3);
@@ -282,10 +283,31 @@ describe("fn#pause()", function () {
     emitter.resume();
     expect(calls).toStrictEqual([2, 3, 4]);
   });
+
+  it("should pause given event only and queue its emissions", function () {
+    const emitter = new BufferedEventEmitter();
+    let calls: number[] = [];
+    const listener = (arg: number) => {
+      calls.push(arg);
+    };
+    emitter.on("bar", listener);
+    emitter.on("foo", listener);
+    emitter.emit("bar", 1);
+    emitter.emit("foo", 1);
+    expect(calls).toStrictEqual([1, 1]);
+    emitter.pause({ eventName: "bar" });
+    calls = [];
+    expect(emitter.emit("foo", 2)).toBe(true);
+    expect(emitter.emit("bar", 3)).toBe(false);
+    expect(emitter.emit("bar", 4)).toBe(false);
+    expect(emitter.emit("bar", 5)).toBe(false);
+    emitter.resume("bar");
+    expect(calls).toStrictEqual([2, 3, 4, 5]);
+  });
 });
 
 describe("fn#resume()", function () {
-  it("should resume and dequeue event synchronously", function () {
+  it("should resume all events and dequeue event emissions synchronously", function () {
     const emitter = new BufferedEventEmitter();
     let calls: string[] = [];
     const listener = (arg: string) => {
@@ -297,7 +319,7 @@ describe("fn#resume()", function () {
     emitter.emit("foo", "foo-2");
     emitter.emit("foo", "foo-3");
     expect(calls).toStrictEqual([["foo-1", "foo-2"]]);
-    emitter.pause(true);
+    emitter.pause();
     calls = [];
     expect(emitter.emit("bar", "bar-1")).toBe(false);
     emitter.emit("bar", "bar-2");
@@ -307,7 +329,7 @@ describe("fn#resume()", function () {
     expect(calls).toStrictEqual(["bar-1", "bar-2", "bar-3", ["foo-3", "foo-4"]]);
   });
 
-  it("should resume and dequeue event asynchronously", async function () {
+  it("should resume all events and dequeue event emissions asynchronously", async function () {
     const emitter = new BufferedEventEmitter();
     let calls: string[] = [];
     let prevDequeuedTime: number = 0;
@@ -326,7 +348,7 @@ describe("fn#resume()", function () {
     emitter.emit("foo", "foo-2");
     emitter.emit("foo", "foo-3");
     expect(calls).toStrictEqual([["foo-1", "foo-2"]]);
-    emitter.pause(true, timeInterval);
+    emitter.pause({ emissionInterval: timeInterval });
     calls = [];
     expect(emitter.emit("bar", "bar-1")).toBe(false);
     emitter.emit("bar", "bar-2");
@@ -334,6 +356,35 @@ describe("fn#resume()", function () {
     emitter.emit("foo", "foo-4");
     await emitter.resume();
     expect(calls).toStrictEqual(["bar-1", "bar-2", "bar-3", ["foo-3", "foo-4"]]);
+  });
+
+  it("should resume given event and dequeue its emissions asynchronously", async function () {
+    const emitter = new BufferedEventEmitter();
+    let calls: string[] = [];
+    let prevDequeuedTime: number = 0;
+    const timeInterval = 100;
+    const listener = (arg: string) => {
+      if (prevDequeuedTime !== 0) {
+        const currentTime = performance.now();
+        const diff = currentTime - prevDequeuedTime;
+        expect(diff).toBeCloseTo(timeInterval);
+      }
+      console.log({ arg });
+      calls.push(arg);
+    };
+    emitter.on("bar", listener);
+    emitter.on("foo", listener);
+    emitter.emit("bar", "bar-1");
+    emitter.emit("foo", "foo-1");
+    emitter.pause({ emissionInterval: timeInterval, eventName: "bar" });
+    expect(calls).toStrictEqual(["bar-1", "foo-1"]);
+    calls = [];
+    expect(emitter.emit("bar", "bar-2")).toBe(false);
+    emitter.emit("bar", "bar-3");
+    emitter.emit("bar", "bar-4");
+    expect(emitter.emit("foo", "foo-2")).toBe(true);
+    await emitter.resume("bar");
+    expect(calls).toStrictEqual(["foo-2", "bar-2", "bar-3", "bar-4"]);
   });
 });
 

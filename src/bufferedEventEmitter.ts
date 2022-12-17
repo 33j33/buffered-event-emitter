@@ -1,3 +1,9 @@
+import {
+  DEFAULT_BUFFER_CAPACITY,
+  ALL_EVENTS,
+  DEFAULT_QUEUE_EMISSION,
+  DEFAULT_EMISSION_INTERVAL,
+} from "./constants";
 import { EventData, Events, InitOptions, Listener, ListenerOptions } from "./types";
 import {
   EventProp,
@@ -7,21 +13,16 @@ import {
   emitAfterTimeout,
   logger,
   attachControls,
+  PausedEvtsProp,
 } from "./utils";
-
-// when buffered
-const DEFAULT_BUFFER_CAPACITY = 5;
-
-// when emission paused
-const DEFAULT_EMISSION_INTERVAL = 0;
 
 export class BufferedEventEmitter {
   protected _events: Events;
   protected _options: Required<InitOptions>;
-  protected _status: "paused" | "emitting";
-  protected _queueEmissions: boolean;
-  protected _emissionInterval: number;
-  protected _queue: { eventName: string; data?: EventData }[]; // stores queued events
+  // protected _queueEmissions: boolean;
+  // protected _emissionInterval: number;
+  protected _pausedEventsStatus: Map<string, PausedEvtsProp>; // stores paused events
+  protected _pausedEventsQueue: { name: string; data: EventData }[];
 
   public static debugStatus = { emit: false, on: false, off: false };
 
@@ -32,10 +33,21 @@ export class BufferedEventEmitter {
       bufferCapacity: options?.bufferCapacity ?? DEFAULT_BUFFER_CAPACITY,
       logger: options?.logger ?? logger,
     };
-    this._status = "emitting";
-    this._queueEmissions = true;
-    this._emissionInterval = DEFAULT_EMISSION_INTERVAL;
-    this._queue = [];
+    // this._statuses = { [ALL_EVENTS]: "emitting" };
+    // this._queueEmissions = true;
+    // this._emissionInterval = DEFAULT_EMISSION_INTERVAL;
+    this._pausedEventsStatus = new Map([
+      [
+        ALL_EVENTS,
+        new PausedEvtsProp(
+          ALL_EVENTS,
+          "emitting",
+          DEFAULT_QUEUE_EMISSION,
+          DEFAULT_EMISSION_INTERVAL
+        ),
+      ],
+    ]);
+    this._pausedEventsQueue = [];
   }
 
   /**
@@ -59,8 +71,14 @@ export class BufferedEventEmitter {
       return false;
     }
 
-    if (this._status === "paused") {
-      if (this._queueEmissions) this._queue.push({ eventName, data });
+    const allEventsPaused = this._pausedEventsStatus.get(ALL_EVENTS)?.status === "paused";
+    const thisEventPaused = this._pausedEventsStatus.get(eventName)?.status === "paused";
+    if (allEventsPaused || thisEventPaused) {
+      if (
+        this._pausedEventsStatus.get(ALL_EVENTS)?.shouldQueue ||
+        this._pausedEventsStatus.get(eventName)?.shouldQueue
+      )
+        this._pausedEventsQueue.push({ name: eventName, data });
       return false;
     }
 
@@ -209,40 +227,90 @@ export class BufferedEventEmitter {
   }
 
   /**
-   * Pause event emissions. Any subsequent event emissions will be swallowed or queued and
+   * Pause event emissions for all or provided event. Any subsequent event emissions will be swallowed or queued and
    * their respective listeners will not be invoked until resume() is called.
-   * @param queueEmissions if true, subsequent event emissions will be queued else swallowed
-   * @param emissionInterval interval in ms for dequeueing queued events. if interval is 0, the events are dequeued synchronously else asynchronously but in order
+   * @param opts configure pausing using options
+   * @param opts.name name for event to be paused
+   * @param opts.queueEmissions if true, subsequent event emissions will be queued else swallowed
+   * @param opts.emissionInterval interval in ms for dequeueing queued events. if interval is 0, the events are dequeued synchronously else asynchronously but in order
    */
-  pause(
-    queueEmissions: boolean = true,
-    emissionInterval: number = DEFAULT_EMISSION_INTERVAL
-  ): void {
-    this._queueEmissions = queueEmissions;
-    this._emissionInterval = emissionInterval;
-    this._status = "paused";
+  pause(opts?: { eventName?: string; queueEmissions?: boolean; emissionInterval?: number }): void {
+    const queueEmissions = opts?.queueEmissions ?? DEFAULT_QUEUE_EMISSION;
+    const emissionInterval = opts?.emissionInterval ?? DEFAULT_EMISSION_INTERVAL;
+    if (typeof opts?.eventName === "string") {
+      this._pausedEventsStatus.set(
+        opts?.eventName,
+        new PausedEvtsProp(opts?.eventName, "paused", queueEmissions, emissionInterval)
+      );
+    } else {
+      // delete all other paused events
+      if (this._pausedEventsStatus.size > 1) this._pausedEventsStatus.clear();
+      this._pausedEventsStatus.set(
+        ALL_EVENTS,
+        new PausedEvtsProp(ALL_EVENTS, "paused", queueEmissions, emissionInterval)
+      );
+    }
   }
 
   /**
-   * Resumes event emission
+   * Resumes event emission for all or provided event
+   * @param eventName: name for event to be resumed.
    * @returns void or Promise depending on emission interval value.
    */
-  resume(): Promise<void> | void {
-    this._status = "emitting";
-    if (this._queueEmissions) {
-      if (this._emissionInterval > DEFAULT_EMISSION_INTERVAL) {
-        const dequeueAsync = async () => {
-          for (const item of this._queue) {
-            await emitAfterTimeout.call(this, item, this._emissionInterval);
+  resume(eventName?: string): Promise<void> | void {
+    let pausedEvents: typeof this._pausedEventsQueue = [];
+    let emissionInterval: number = DEFAULT_EMISSION_INTERVAL;
+    if (typeof eventName === "string") {
+      if (this._pausedEventsStatus.get(eventName)) {
+        const { shouldQueue, status, interval } = (
+          this._pausedEventsStatus.get(eventName) as PausedEvtsProp
+        ).getProps();
+        this._pausedEventsStatus.delete(eventName);
+        if (status === "paused") {
+          if (shouldQueue) {
+            this._pausedEventsQueue = this._pausedEventsQueue.filter((o) => {
+              if (o.name === eventName) {
+                pausedEvents.push(o);
+                return false;
+              } else return true;
+            });
+            emissionInterval = interval;
           }
-        };
-        return dequeueAsync();
-      } else {
-        this._queue.forEach(({ eventName, data }) => {
-          this.emit(eventName, data);
-        });
-        this._queue = [];
+        }
       }
+    } else {
+      if (this._pausedEventsStatus.size > 1) {
+        // use default values when eventName is not provided
+        emissionInterval = DEFAULT_EMISSION_INTERVAL;
+        pausedEvents = this._pausedEventsQueue;
+        this._pausedEventsQueue = [];
+      } else if (this._pausedEventsStatus.get(ALL_EVENTS)) {
+        const { shouldQueue, status, interval } = (
+          this._pausedEventsStatus.get(ALL_EVENTS) as PausedEvtsProp
+        ).getProps();
+        this._pausedEventsStatus.clear();
+        if (status === "paused") {
+          if (shouldQueue) {
+            pausedEvents = this._pausedEventsQueue;
+            this._pausedEventsQueue = [];
+            emissionInterval = interval;
+          }
+        }
+      }
+    }
+    // async
+    if (emissionInterval > DEFAULT_EMISSION_INTERVAL) {
+      const dequeueAsync = async () => {
+        for (const item of pausedEvents) {
+          await emitAfterTimeout.call(this, item, emissionInterval);
+        }
+      };
+      return dequeueAsync();
+      // sync
+    } else {
+      pausedEvents.forEach(({ name, data }) => {
+        this.emit(name, data);
+      });
     }
   }
 
@@ -254,7 +322,8 @@ export class BufferedEventEmitter {
   offAll(eventName: string): Boolean {
     if (eventName && this._events[eventName]?.length > 0) {
       delete this._events[eventName];
-      this._queue = this._queue.filter((e) => e.eventName !== eventName);
+      this._pausedEventsQueue = this._pausedEventsQueue.filter((e) => e.name !== eventName);
+      this._pausedEventsStatus.delete(eventName);
       return true;
     } else return false;
   }
@@ -263,7 +332,7 @@ export class BufferedEventEmitter {
    * Removes all listeners and queued events for the instance.
    */
   cleanup(): void {
-    this._queue = [];
+    this._pausedEventsQueue = [];
     this._events = {};
   }
 
