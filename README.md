@@ -29,9 +29,9 @@
   - [once(eventName, listener, options?)](#onceeventname-listener-options)
   - [off(eventName, listener, options?)](#offeventname-listener-options)
   - [flush(eventName, listener?, options?)](#flusheventname-listener-options)
-  - [pause(opts?: {queueEmissions?, emissionInterval?, eventName?})](#pauseopts-queueemissions-emissioninterval-eventname)
+  - [pause({queueEmissions?, emissionInterval?, eventName?})](#pausequeueemissions-emissioninterval-eventname)
   - [resume(eventName?)](#resumeeventname)
-  - [enableDebug(opts: { emit?, on?, off?})](#enabledebugopts--emit-on-off)
+  - [enableDebug({ emit?, on?, off?})](#enabledebug-emit-on-off)
 
 ## Install
 
@@ -283,10 +283,10 @@ Returns `true` if any events were flushed (emitted), `false` otherwise.
 | listener  | Listener        | No       | Callback which was registered earlier                       |
 | options   | ListenerOptions | No       | Config options which were passed while registering callback |
 
-### pause(opts?: {queueEmissions?, emissionInterval?, eventName?})
+### pause({queueEmissions?, emissionInterval?, eventName?})
 
 ```typescript
-pause(opts?: {queueEmissions?: boolean = true, emissionInterval?: number = 0, eventName?: string}): void
+pause({queueEmissions?: boolean = true, emissionInterval?: number = 0, eventName?: string}): void
 ```
 
 Pause event emissions for all or given event. Any subsequent event emissions will be swallowed or queued and
@@ -305,12 +305,12 @@ resume(eventName?: string): Promise<void> | void
 ```
 
 Resumes event emission for all events or provided event.
-Emits event asynchronously and returns a Promise if value of emission interval was greater than 0 when event emission was paused using `pause(opts?)` or else emits event synchronously. If eventName is provided resumes event emission for that particular event only.
+Emits event asynchronously and returns a Promise if value of emission interval was greater than 0 when event emission was paused using `pause()` or else emits event synchronously. If eventName is provided resumes event emission for that particular event only.
 
-### enableDebug(opts: { emit?, on?, off?})
+### enableDebug({ emit?, on?, off?})
 
 ```typescript
-static enableDebug(opts: { emit?: boolean; on?: boolean; off?: boolean })
+static enableDebug({ emit?: boolean; on?: boolean; off?: boolean })
 ```
 
 Enables debugging for all instances of the event emitter through the `logger` function.  
