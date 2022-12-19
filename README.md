@@ -29,9 +29,11 @@
   - [once(eventName, listener, options?)](#onceeventname-listener-options)
   - [off(eventName, listener, options?)](#offeventname-listener-options)
   - [flush(eventName, listener?, options?)](#flusheventname-listener-options)
+  - [new EventController()](#new-eventcontroller)
   - [pause({queueEmissions?, emissionInterval?, eventName?})](#pausequeueemissions-emissioninterval-eventname)
   - [resume(eventName?)](#resumeeventname)
   - [enableDebug({ emit?, on?, off?})](#enabledebug-emit-on-off)
+  - [Types](#types)
 
 ## Install
 
@@ -156,7 +158,7 @@ const bEmitter = new BufferedEventEmitter();
 
 Create a new instance of BufferedEventEmitter.
 
-#### `options?` <!-- omit in toc -->
+#### `options?: InitOptions` <!-- omit in toc -->
 
 Type: `object`
 
@@ -283,6 +285,41 @@ Returns `true` if any events were flushed (emitted), `false` otherwise.
 | listener  | Listener        | No       | Callback which was registered earlier                       |
 | options   | ListenerOptions | No       | Config options which were passed while registering callback |
 
+### new EventController()
+
+```typescript
+const control = new EventController();
+```
+
+Type: `object`
+
+```typescript
+class EventController {
+  public flush: () => void;
+  public off: () => void;
+}
+```
+
+Creates an instance of EventController which when provided while registering event listeners can be used to control multiple event listeners at once.
+
+```typescript
+const listener = (arg: number) => {
+  console.log(arg);
+};
+const control = new EventController();
+emitter.on("foo", listener, { control });
+emitter.on("bar", listener, { control });
+emitter.on("baz", listener, { control });
+
+emitter.emit("foo", 10); // 10
+control.off(); // removes all the listeners at once
+
+// logs nothing
+emitter.emit("foo", 20);
+emitter.emit("bar", 20);
+emitter.emit("baz", 20);
+```
+
 ### pause({queueEmissions?, emissionInterval?, eventName?})
 
 ```typescript
@@ -347,4 +384,26 @@ bEmitter.emit("ping", "third emit");
 [Event Type: off | Event Name: ping | 22:23:23.803]
      [Event Data: function ping(data) {    // ...}}]
 */
+```
+
+### Types
+
+1. ListenerOptions
+
+```typescript
+type ListenerOptions = {
+  buffered?: boolean;
+  bufferCapacity?: number;
+  control?: EventController;
+};
+```
+
+2. InitOptions
+
+```typescript
+type InitOptions = {
+  buffered?: boolean;
+  bufferCapacity?: number;
+  logger?: (type: "emit" | "on" | "off", eventName: string, eventData?: any) => void;
+};
 ```

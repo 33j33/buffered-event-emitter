@@ -3,6 +3,7 @@ import {
   ALL_EVENTS,
   DEFAULT_QUEUE_EMISSION,
   DEFAULT_EMISSION_INTERVAL,
+  DEFAULT_IS_BUFFERED,
 } from "./constants";
 import { EventData, Events, InitOptions, Listener, ListenerOptions } from "./types";
 import {
@@ -29,7 +30,7 @@ export class BufferedEventEmitter {
   constructor(options?: InitOptions) {
     this._events = {};
     this._options = {
-      buffered: options?.buffered ?? false,
+      buffered: options?.buffered ?? DEFAULT_IS_BUFFERED,
       bufferCapacity: options?.bufferCapacity ?? DEFAULT_BUFFER_CAPACITY,
       logger: options?.logger ?? logger,
     };
@@ -332,6 +333,7 @@ export class BufferedEventEmitter {
    * Removes all listeners and queued events for the instance.
    */
   cleanup(): void {
+    this._pausedEventsStatus.clear();
     this._pausedEventsQueue = [];
     this._events = {};
   }
