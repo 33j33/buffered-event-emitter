@@ -4,6 +4,8 @@ import {
   DEFAULT_QUEUE_EMISSION,
   DEFAULT_EMISSION_INTERVAL,
   DEFAULT_IS_BUFFERED,
+  DEFAULT_IS_CACHE,
+  DEFAULT_CACHE_CAPACITY,
 } from "./constants";
 import { EventData, Events, InitOptions, Listener, ListenerOptions } from "./types";
 import {
@@ -15,15 +17,15 @@ import {
   logger,
   attachControls,
   PausedEvtsProp,
+  addToCache,
 } from "./utils";
 
 export class BufferedEventEmitter {
   protected _events: Events;
   protected _options: Required<InitOptions>;
-  // protected _queueEmissions: boolean;
-  // protected _emissionInterval: number;
-  protected _pausedEventsStatus: Map<string, PausedEvtsProp>; // stores paused events
-  protected _pausedEventsQueue: { name: string; data: EventData }[];
+  protected _pausedEventsConfig: Map<string, PausedEvtsProp>; // stores paused events config
+  protected _pausedEventsQueue: { name: string; data: EventData }[]; // store paused events data
+  protected _cache: Map<string, EventData[]>;
 
   public static debugStatus = { emit: false, on: false, off: false };
 
@@ -33,11 +35,10 @@ export class BufferedEventEmitter {
       buffered: options?.buffered ?? DEFAULT_IS_BUFFERED,
       bufferCapacity: options?.bufferCapacity ?? DEFAULT_BUFFER_CAPACITY,
       logger: options?.logger ?? logger,
+      cache: options?.cache ?? DEFAULT_IS_CACHE,
+      cacheCapacity: options?.cacheCapacity ?? DEFAULT_CACHE_CAPACITY,
     };
-    // this._statuses = { [ALL_EVENTS]: "emitting" };
-    // this._queueEmissions = true;
-    // this._emissionInterval = DEFAULT_EMISSION_INTERVAL;
-    this._pausedEventsStatus = new Map([
+    this._pausedEventsConfig = new Map([
       [
         ALL_EVENTS,
         new PausedEvtsProp(
@@ -49,6 +50,7 @@ export class BufferedEventEmitter {
       ],
     ]);
     this._pausedEventsQueue = [];
+    this._cache = new Map();
   }
 
   /**
@@ -72,12 +74,12 @@ export class BufferedEventEmitter {
       return false;
     }
 
-    const allEventsPaused = this._pausedEventsStatus.get(ALL_EVENTS)?.status === "paused";
-    const thisEventPaused = this._pausedEventsStatus.get(eventName)?.status === "paused";
+    const allEventsPaused = this._pausedEventsConfig.get(ALL_EVENTS)?.status === "paused";
+    const thisEventPaused = this._pausedEventsConfig.get(eventName)?.status === "paused";
     if (allEventsPaused || thisEventPaused) {
       if (
-        this._pausedEventsStatus.get(ALL_EVENTS)?.shouldQueue ||
-        this._pausedEventsStatus.get(eventName)?.shouldQueue
+        this._pausedEventsConfig.get(ALL_EVENTS)?.shouldQueue ||
+        this._pausedEventsConfig.get(eventName)?.shouldQueue
       )
         this._pausedEventsQueue.push({ name: eventName, data });
       return false;
@@ -99,6 +101,7 @@ export class BufferedEventEmitter {
 
         if (event?.bucket && event.bucket.length >= bufferCapacity) {
           event.fn(event.bucket);
+          addToCache.call(this, eventName, event.bucket);
           didEmit = true;
           didAnyEmit = true;
           this._options.logger("emit", eventName, event.bucket);
@@ -107,6 +110,7 @@ export class BufferedEventEmitter {
       } else {
         // non-buffered event handling
         event.fn(data);
+        addToCache.call(this, eventName, data);
         didEmit = true;
         didAnyEmit = true;
         this._options.logger("emit", eventName, data);
@@ -214,6 +218,7 @@ export class BufferedEventEmitter {
 
         if (shouldFlush) {
           event.fn(event.bucket);
+          addToCache.call(this, eventName, event.bucket);
           didAnyEmit = true;
           this._options.logger("emit", eventName, event.bucket);
           event.bucket = [];
@@ -239,14 +244,14 @@ export class BufferedEventEmitter {
     const queueEmissions = opts?.queueEmissions ?? DEFAULT_QUEUE_EMISSION;
     const emissionInterval = opts?.emissionInterval ?? DEFAULT_EMISSION_INTERVAL;
     if (typeof opts?.eventName === "string") {
-      this._pausedEventsStatus.set(
+      this._pausedEventsConfig.set(
         opts?.eventName,
         new PausedEvtsProp(opts?.eventName, "paused", queueEmissions, emissionInterval)
       );
     } else {
       // delete all other paused events
-      if (this._pausedEventsStatus.size > 1) this._pausedEventsStatus.clear();
-      this._pausedEventsStatus.set(
+      if (this._pausedEventsConfig.size > 1) this._pausedEventsConfig.clear();
+      this._pausedEventsConfig.set(
         ALL_EVENTS,
         new PausedEvtsProp(ALL_EVENTS, "paused", queueEmissions, emissionInterval)
       );
@@ -262,11 +267,11 @@ export class BufferedEventEmitter {
     let pausedEvents: typeof this._pausedEventsQueue = [];
     let emissionInterval: number = DEFAULT_EMISSION_INTERVAL;
     if (typeof eventName === "string") {
-      if (this._pausedEventsStatus.get(eventName)) {
+      if (this._pausedEventsConfig.get(eventName)) {
         const { shouldQueue, status, interval } = (
-          this._pausedEventsStatus.get(eventName) as PausedEvtsProp
+          this._pausedEventsConfig.get(eventName) as PausedEvtsProp
         ).getProps();
-        this._pausedEventsStatus.delete(eventName);
+        this._pausedEventsConfig.delete(eventName);
         if (status === "paused") {
           if (shouldQueue) {
             this._pausedEventsQueue = this._pausedEventsQueue.filter((o) => {
@@ -280,16 +285,16 @@ export class BufferedEventEmitter {
         }
       }
     } else {
-      if (this._pausedEventsStatus.size > 1) {
+      if (this._pausedEventsConfig.size > 1) {
         // use default values when eventName is not provided
         emissionInterval = DEFAULT_EMISSION_INTERVAL;
         pausedEvents = this._pausedEventsQueue;
         this._pausedEventsQueue = [];
-      } else if (this._pausedEventsStatus.get(ALL_EVENTS)) {
+      } else if (this._pausedEventsConfig.get(ALL_EVENTS)) {
         const { shouldQueue, status, interval } = (
-          this._pausedEventsStatus.get(ALL_EVENTS) as PausedEvtsProp
+          this._pausedEventsConfig.get(ALL_EVENTS) as PausedEvtsProp
         ).getProps();
-        this._pausedEventsStatus.clear();
+        this._pausedEventsConfig.clear();
         if (status === "paused") {
           if (shouldQueue) {
             pausedEvents = this._pausedEventsQueue;
@@ -324,7 +329,8 @@ export class BufferedEventEmitter {
     if (eventName && this._events[eventName]?.length > 0) {
       delete this._events[eventName];
       this._pausedEventsQueue = this._pausedEventsQueue.filter((e) => e.name !== eventName);
-      this._pausedEventsStatus.delete(eventName);
+      this._pausedEventsConfig.delete(eventName);
+      this._cache.delete(eventName);
       return true;
     } else return false;
   }
@@ -333,8 +339,9 @@ export class BufferedEventEmitter {
    * Removes all listeners and queued events for the instance.
    */
   cleanup(): void {
-    this._pausedEventsStatus.clear();
+    this._pausedEventsConfig.clear();
     this._pausedEventsQueue = [];
+    this._cache.clear();
     this._events = {};
   }
 
@@ -346,6 +353,10 @@ export class BufferedEventEmitter {
     } else {
       return this._events[eventName].map((event) => event.fn);
     }
+  }
+
+  getCache(eventName: string) {
+    return this._cache.get(eventName);
   }
 
   /**

@@ -14,6 +14,8 @@ export type BufferOptions = Omit<ListenerOptions, "control">;
 
 export type InitOptions = BufferOptions & {
   logger?: typeof logger;
+  cache?: boolean;
+  cacheCapacity?: number;
 };
 
 export type EventData = any;

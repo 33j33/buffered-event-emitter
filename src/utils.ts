@@ -66,11 +66,6 @@ export class PausedEvtsProp {
   }
 }
 
-export class EventController {
-  flush() {}
-  off() {}
-}
-
 export function checkListenerOptionsEquality(
   obj1: ListenerOptions | undefined,
   obj2: ListenerOptions | undefined
@@ -158,6 +153,11 @@ export function logger(
   console.groupEnd();
 }
 
+export class EventController {
+  flush() {}
+  off() {}
+}
+
 const controls: Map<EventController, EventProp[]> = new Map();
 
 export function attachControls(
@@ -178,4 +178,19 @@ export function attachControls(
       this.flush(p.name, p.fn, p.options);
     });
   };
+}
+
+export function addToCache(
+  this: BufferedEventEmitter,
+  eventName: string,
+  data: EventData | EventData[]
+) {
+  if (!this._options.cache) return;
+  const arr = this._cache.get(eventName);
+  const newArr = arr || [];
+  if (newArr.length >= this._options.cacheCapacity) {
+    newArr.shift();
+  }
+  newArr.push(data);
+  this._cache.set(eventName, newArr);
 }
