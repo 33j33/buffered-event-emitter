@@ -1,5 +1,5 @@
 import { BufferedEventEmitter } from "./bufferedEventEmitter";
-import { ALL_EVENTS } from "./constants";
+import { ALL_EVENTS, EMIT_STATUS } from "./constants";
 import { EventData, Listener, ListenerOptions } from "./types";
 
 /**
@@ -26,40 +26,36 @@ export class EventProp {
 }
 
 type PauseEventName = string | typeof ALL_EVENTS;
+type EmitStatus = typeof EMIT_STATUS[keyof typeof EMIT_STATUS];
 // Paused Event Properties
 export class PausedEvtsProp {
   public name: PauseEventName; // eventname
-  public shouldQueue: boolean;
+  public shouldQ: boolean; // should Queue events
   public interval: number; // emission interval
-  public status: "paused" | "emitting";
-  constructor(
-    name: PauseEventName,
-    status: "paused" | "emitting",
-    shouldQueue: boolean,
-    interval: number
-  ) {
+  public status: EmitStatus;
+  constructor(name: PauseEventName, status: EmitStatus, shouldQ: boolean, interval: number) {
     this.name = name;
     this.status = status;
-    this.shouldQueue = shouldQueue;
+    this.shouldQ = shouldQ;
     this.interval = interval;
   }
   updateProps({
     status,
-    shouldQueue,
+    shouldQ,
     interval,
   }: {
-    status?: "paused" | "emitting";
-    shouldQueue?: boolean;
+    status?: EmitStatus;
+    shouldQ?: boolean;
     interval?: number;
   }) {
     if (status) this.status = status;
-    if (shouldQueue !== undefined) this.shouldQueue = shouldQueue;
+    if (shouldQ !== undefined) this.shouldQ = shouldQ;
     if (interval !== undefined) this.interval = interval;
   }
   getProps() {
     return {
       status: this.status,
-      shouldQueue: this.shouldQueue,
+      shouldQ: this.shouldQ,
       interval: this.interval,
       name: this.name,
     };
@@ -185,10 +181,10 @@ export function addToCache(
   eventName: string,
   data: EventData | EventData[]
 ) {
-  if (!this._options.cache) return;
+  if (!this._opts.cache) return;
   const arr = this._cache.get(eventName);
   const newArr = arr || [];
-  if (newArr.length >= this._options.cacheCapacity) {
+  if (newArr.length >= this._opts.cacheCapacity) {
     newArr.shift();
   }
   newArr.push(data);

@@ -1,6 +1,6 @@
 {
   "name": "buffered-event-emitter",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Event emitter that supports buffering and queueing events.",
   "main": "lib/bundle.esm.mjs",
   "module": "lib/bundle.umd.js",
@@ -42,12 +42,12 @@
   "author": "33j33",
   "license": "MIT",
   "devDependencies": {
+    "@rollup/plugin-terser": "^0.2.0",
     "@types/jest": "^29.1.2",
     "jest": "^29.2.0",
     "npm-run-all": "^4.1.5",
     "prettier": "^2.7.1",
     "rollup": "^2.79.0",
-    "rollup-plugin-terser": "^7.0.2",
     "ts-jest": "^29.0.3",
     "typescript": "^4.8.2"
   }

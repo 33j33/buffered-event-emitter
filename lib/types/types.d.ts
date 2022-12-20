@@ -10,6 +10,8 @@ export declare type ListenerOptions = {
 export declare type BufferOptions = Omit<ListenerOptions, "control">;
 export declare type InitOptions = BufferOptions & {
     logger?: typeof logger;
+    cache?: boolean;
+    cacheCapacity?: number;
 };
 export declare type EventData = any;
 export declare type Listener = (data: EventData) => void;

@@ -14,10 +14,10 @@ beforeEach(async () => {
 describe("#init", function () {
   it("should initialise BufferedEventEmitter with given options", function () {
     const logger = (type: "emit" | "on" | "off", name: string, data?: any) => {};
-    const options = { buffered: true, bufferCapacity: 3, logger };
+    const options = { buffered: true, bufferCapacity: 3, logger, cache: true, cacheCapacity: 10 };
     const emitter = new BufferedEventEmitter(options);
     // @ts-ignore
-    expect(emitter._options).toStrictEqual(options);
+    expect(emitter._opts).toStrictEqual(options);
   });
 });
 
@@ -369,7 +369,6 @@ describe("fn#resume()", function () {
         const diff = currentTime - prevDequeuedTime;
         expect(diff).toBeCloseTo(timeInterval);
       }
-      console.log({ arg });
       calls.push(arg);
     };
     emitter.on("bar", listener);
@@ -385,6 +384,33 @@ describe("fn#resume()", function () {
     expect(emitter.emit("foo", "foo-2")).toBe(true);
     await emitter.resume("bar");
     expect(calls).toStrictEqual(["foo-2", "bar-2", "bar-3", "bar-4"]);
+  });
+});
+
+describe("fn#getCache()", function () {
+  it("should get stored event data in cache", function () {
+    const emitter = new BufferedEventEmitter({ cache: true });
+    const callsFoo: Array<string | string[]> = [];
+    const callsBar: Array<string | string[]> = [];
+    const listenerOne = (arg: string | string[]) => {
+      expect(callsFoo.at(-1)).toStrictEqual(emitter.getCache("foo").at(-1));
+      callsFoo.push(arg);
+    };
+    const listenerTwo = (arg: string | string[]) => {
+      expect(callsBar.at(-1)).toStrictEqual(emitter.getCache("bar").at(-1));
+      callsBar.push(arg);
+    };
+    emitter.on("foo", listenerOne);
+    emitter.on("bar", listenerTwo, { buffered: true, bufferCapacity: 3 });
+    emitter.emit("foo", "f-1");
+    emitter.emit("bar", "b-1");
+    emitter.emit("foo", "f-2");
+    emitter.emit("bar", "b-2");
+    emitter.emit("bar", "b-3");
+    emitter.emit("bar", "b-4");
+    emitter.flush("bar");
+    expect(emitter.getCache("foo")).toStrictEqual(["f-1", "f-2"]);
+    expect(emitter.getCache("bar")).toStrictEqual([["b-1", "b-2", "b-3"], ["b-4"]]);
   });
 });
 

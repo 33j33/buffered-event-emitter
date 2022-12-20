@@ -1,14 +1,14 @@
 import { EventData, Events, InitOptions, Listener, ListenerOptions } from "./types";
+import { PausedEvtsProp } from "./utils";
 export declare class BufferedEventEmitter {
-    protected _events: Events;
-    protected _options: Required<InitOptions>;
-    protected _status: "paused" | "emitting";
-    protected _queueEmissions: boolean;
-    protected _emissionInterval: number;
-    protected _queue: {
-        eventName: string;
-        data?: EventData;
+    protected _evts: Events;
+    protected _opts: Required<InitOptions>;
+    protected _pEvtsConf: Map<string, PausedEvtsProp>;
+    protected _pEvtsQ: {
+        name: string;
+        data: EventData;
     }[];
+    protected _cache: Map<string, EventData[]>;
     static debugStatus: {
         emit: boolean;
         on: boolean;
@@ -74,17 +74,24 @@ export declare class BufferedEventEmitter {
      */
     flush(eventName: string, listener: Listener, options?: ListenerOptions): boolean;
     /**
-     * Pause event emissions. Any subsequent event emissions will be swallowed or queued and
+     * Pause event emissions for all or provided event. Any subsequent event emissions will be swallowed or queued and
      * their respective listeners will not be invoked until resume() is called.
-     * @param queueEmissions if true, subsequent event emissions will be queued else swallowed
-     * @param emissionInterval interval in ms for dequeueing queued events. if interval is 0, the events are dequeued synchronously else asynchronously but in order
+     * @param opts configure pausing using options
+     * @param opts.name name for event to be paused
+     * @param opts.queueEmissions if true, subsequent event emissions will be queued else swallowed
+     * @param opts.emissionInterval interval in ms for dequeueing queued events. if interval is 0, the events are dequeued synchronously else asynchronously but in order
      */
-    pause(queueEmissions?: boolean, emissionInterval?: number): void;
+    pause(opts?: {
+        eventName?: string;
+        queueEmissions?: boolean;
+        emissionInterval?: number;
+    }): void;
     /**
-     * Resumes event emission
+     * Resumes event emission for all or provided event
+     * @param eventName: name for event to be resumed.
      * @returns void or Promise depending on emission interval value.
      */
-    resume(): Promise<void> | void;
+    resume(eventName?: string): Promise<void> | void;
     /**
      * Remove all listeners for the provided event name.
      * @param eventName - event name
@@ -97,6 +104,7 @@ export declare class BufferedEventEmitter {
     cleanup(): void;
     listeners(): Events;
     listeners(eventName: string): Listener[];
+    getCache(eventName: string): any[];
     /**
      * Enable debugging for all instances of the emitter
      * @param opts

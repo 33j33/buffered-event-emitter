@@ -11,7 +11,7 @@
 - Buffer events with configurable buffer capacity.
 - Pause and resume event emission.
 - Log event emission, adding and removing listeners (`emit`, `on`, `off` actions).
-- Tiny, 4.7kb minified.
+- Tiny, 6.1kb minified.
 - Works for both nodejs and browser.
 - Based on [node events api](https://nodejs.org/api/events.html)
 - Typescript support
@@ -167,6 +167,8 @@ Type: `object`
  buffered?: boolean;
  bufferCapacity?: number;
  logger?: Function;
+ cache?: boolean;
+ cacheCapacity?: number
 }
 ```
 
@@ -174,7 +176,8 @@ Config options for instance of BufferedEventEmitter.
 
 #### `buffered?` <!-- omit in toc -->
 
-Type: `boolean`
+Type: `boolean`\
+Default: `False`
 
 Configure if event listeners registered on this instance will received buffered event data.
 
@@ -191,6 +194,20 @@ Type: `(type: "emit" | "on" | "off", eventName: string, eventData?: EventData | 
 Default: `logger` in utils https://github.com/33j33/buffered-event-emitter/blob/develop/src/utils.ts
 
 Add a custom logger.
+
+#### `cache` <!-- omit in toc -->
+
+Type: `boolean`\
+Default: `false`
+
+Configure if event data should be cached. Stored data for an event can be retrieved though `getCache(eventName)`
+
+#### `cacheCapacity` <!-- omit in toc -->
+
+Type: `number`\
+Default: `20`
+
+Configure cache capacity. Data is stored and deleted in FIFO fashion. Once the cache is full, the first item in dequeued and another is enqueued.
 
 ### emit(eventName, data?)
 
@@ -402,8 +419,10 @@ type ListenerOptions = {
 
 ```typescript
 type InitOptions = {
-  buffered?: boolean;
-  bufferCapacity?: number;
+  buffered?: boolean; // false
+  bufferCapacity?: number; // 5
   logger?: (type: "emit" | "on" | "off", eventName: string, eventData?: any) => void;
+  cache?: boolean; // false
+  cacheCapacity?: number; // 20
 };
 ```
