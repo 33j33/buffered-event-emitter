@@ -97,7 +97,7 @@ export function getListenerIdx(
   return -1;
 }
 
-export function emitAfterTimeout(
+export async function emitAfterTimeout(
   this: BufferedEventEmitter,
   payload: { name: string; data?: EventData },
   ms: number

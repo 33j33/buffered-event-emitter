@@ -39,6 +39,9 @@ export class BufferedEventEmitter {
       cache: options?.cache ?? DEFAULT_IS_CACHE,
       cacheCapacity: options?.cacheCapacity ?? DEFAULT_CACHE_CAPACITY,
     };
+    // Initialize pause/resume configuration with default "emitting" state for all events.
+    // This ensures ALL_EVENTS always exists for global pause/resume operations and 
+    // eliminates null checks when determining if events should be paused or queued.
     this._pEvtsConf = new Map([
       [
         ALL_EVENTS,
