@@ -86,14 +86,15 @@ export class BufferedEventEmitter {
       return false;
     }
 
-    // collect events here which are !(once && emitted)
-    let eventProps: EventProp[] = [];
+    // collect listeners for event which are not 'once' and not invoked
+    let remainingListeners: EventProp[] = [];
 
-    let didAnyEmit = false;
+    // flag to store if any event  a listener
+    let didInvokeAnyListener = false;
 
     // iterate through all registered events
     this._evts[eventName].forEach((event: EventProp) => {
-      let didEmit = false;
+      let didInvokeCurrentListener = false;
 
       // buffered event handling
       if (event?.options?.buffered) {
@@ -103,8 +104,8 @@ export class BufferedEventEmitter {
         if (event?.bucket && event.bucket.length >= bufferCapacity) {
           event.fn(event.bucket);
           addToCache.call(this, eventName, event.bucket);
-          didEmit = true;
-          didAnyEmit = true;
+          didInvokeCurrentListener = true;
+          didInvokeAnyListener = true;
           this._opts.logger("emit", eventName, event.bucket);
           event.bucket = [];
         }
@@ -112,18 +113,18 @@ export class BufferedEventEmitter {
         // non-buffered event handling
         event.fn(data);
         addToCache.call(this, eventName, data);
-        didEmit = true;
-        didAnyEmit = true;
+        didInvokeCurrentListener = true;
+        didInvokeAnyListener = true;
         this._opts.logger("emit", eventName, data);
       }
 
-      // filter out once emitted events
-      if (!(event.once && didEmit)) {
-        eventProps.push(event);
+      // filter out once emitted listeners
+      if (!(event.once && didInvokeCurrentListener)) {
+        remainingListeners.push(event);
       }
     });
-    this._evts[eventName] = eventProps;
-    return didAnyEmit;
+    this._evts[eventName] = remainingListeners;
+    return didInvokeAnyListener;
   }
 
   /**
@@ -355,7 +356,11 @@ export class BufferedEventEmitter {
       return this._evts[eventName].map((event) => event.fn);
     }
   }
-
+  /**
+   * Get cached data for particular event
+   * @param eventName - event name
+   * @returns cached event data
+   */
   getCache(eventName: string) {
     return this._cache.get(eventName) || [];
   }
@@ -372,7 +377,7 @@ export class BufferedEventEmitter {
   }
 }
 
-// Aliases
+// Adding aliases via declaration merging
 export interface BufferedEventEmitter {
   /**
    * Alias for on(eventName, listener, options?). Adds an event listener for given event name and options.
