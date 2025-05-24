@@ -1,7 +1,7 @@
 {
   "name": "buffered-event-emitter",
   "version": "0.0.8",
-  "description": "Event emitter that supports buffering and queueing events.",
+  "description": "Event emitter designed for handling rapid events - supports buffering, queueing, pausing, resuming events and caching of event data",
   "main": "lib/bundle.esm.mjs",
   "module": "lib/bundle.umd.js",
   "unpkg": "lib/bundle.umd.js",
@@ -31,6 +31,8 @@
     "eventemitter",
     "events",
     "buffered events",
+    "buffered-event-emitter",
+    "buffered event emitter",
     "queue events",
     "pub sub",
     "resumable emitter",
