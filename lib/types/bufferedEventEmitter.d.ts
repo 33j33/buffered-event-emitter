@@ -1,6 +1,6 @@
-import { EventData, Events, InitOptions, Listener, ListenerOptions } from "./types";
+import { DebugStatus, EventData, Events, IBufferedEventEmitter, InitOptions, Listener, ListenerOptions } from "./types";
 import { PausedEvtsProp } from "./utils";
-export declare class BufferedEventEmitter {
+export declare class BufferedEventEmitter implements IBufferedEventEmitter {
     protected _evts: Events;
     protected _opts: Required<InitOptions>;
     protected _pEvtsConf: Map<string, PausedEvtsProp>;
@@ -9,11 +9,6 @@ export declare class BufferedEventEmitter {
         data: EventData;
     }[];
     protected _cache: Map<string, EventData[]>;
-    static debugStatus: {
-        emit: boolean;
-        on: boolean;
-        off: boolean;
-    };
     constructor(options?: InitOptions);
     /**
      *
@@ -104,7 +99,12 @@ export declare class BufferedEventEmitter {
     cleanup(): void;
     listeners(): Events;
     listeners(eventName: string): Listener[];
-    getCache(eventName: string): any[];
+    /**
+     * Get cached data for particular event
+     * @param eventName - event name
+     * @returns cached event data
+     */
+    getCache(eventName: string): EventData[] | EventData;
     /**
      * Enable debugging for all instances of the emitter
      * @param opts
@@ -114,6 +114,10 @@ export declare class BufferedEventEmitter {
         on?: boolean;
         off?: boolean;
     }): void;
+    /**
+     * Returns DebugStatus
+     */
+    static get debugStatus(): DebugStatus;
 }
 export interface BufferedEventEmitter {
     /**

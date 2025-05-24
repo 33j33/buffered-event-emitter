@@ -1,6 +1,5 @@
-import { BufferedEventEmitter } from "./bufferedEventEmitter";
 import { ALL_EVENTS, EMIT_STATUS } from "./constants";
-import { EventData, Listener, ListenerOptions } from "./types";
+import { EventData, Listener, ListenerOptions, IBufferedEventEmitter, DebugStatus } from "./types";
 /**
  * Event Properties
  */
@@ -35,16 +34,21 @@ export declare class PausedEvtsProp {
 }
 export declare function checkListenerOptionsEquality(obj1: ListenerOptions | undefined, obj2: ListenerOptions | undefined): boolean;
 export declare function getListenerIdx(events: EventProp[], listener: Listener, options: ListenerOptions | undefined): number;
-export declare function emitAfterTimeout(this: BufferedEventEmitter, payload: {
+export declare function emitAfterTimeout(this: IBufferedEventEmitter, payload: {
     name: string;
     data?: EventData;
 }, ms: number): Promise<unknown>;
+export declare let debugStatus: DebugStatus;
+export declare function updateDebugStatus(opts: {
+    emit?: boolean;
+    on?: boolean;
+    off?: boolean;
+}): void;
 export declare function logger(type: "emit" | "on" | "off", eventName: string, eventData?: EventData | Listener): void;
 export declare class EventController {
     flush(): void;
     off(): void;
 }
-export declare function attachControls(this: BufferedEventEmitter, control: EventController, eventProp: EventProp): void;
-export declare function addToCache(this: BufferedEventEmitter, eventName: string, data: EventData | EventData[]): void;
+export declare function attachControls(this: IBufferedEventEmitter, control: EventController, eventProp: EventProp): void;
 export {};
 //# sourceMappingURL=utils.d.ts.map
