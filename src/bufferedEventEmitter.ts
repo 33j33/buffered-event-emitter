@@ -7,6 +7,7 @@ import {
   DEFAULT_IS_CACHE,
   DEFAULT_CACHE_CAPACITY,
   EMIT_STATUS,
+  DEFAULT_BUFFER_INACTIVITY_TIMEOUT,
 } from "./constants";
 import { EventData, Events, InitOptions, Listener, ListenerOptions } from "./types";
 import {
@@ -35,9 +36,10 @@ export class BufferedEventEmitter {
     this._opts = {
       buffered: options?.buffered ?? DEFAULT_IS_BUFFERED,
       bufferCapacity: options?.bufferCapacity ?? DEFAULT_BUFFER_CAPACITY,
+      bufferInactivityTimeout: options?.bufferInactivityTimeout ?? DEFAULT_BUFFER_INACTIVITY_TIMEOUT,
       logger: options?.logger ?? logger,
       cache: options?.cache ?? DEFAULT_IS_CACHE,
-      cacheCapacity: options?.cacheCapacity ?? DEFAULT_CACHE_CAPACITY,
+      cacheCapacity: options?.cacheCapacity ?? DEFAULT_CACHE_CAPACITY
     };
     // Initialize pause/resume configuration with default "emitting" state for all events.
     // This ensures ALL_EVENTS always exists for global pause/resume operations and 
@@ -89,7 +91,7 @@ export class BufferedEventEmitter {
     // collect listeners for event which are not 'once' and not invoked
     let remainingListeners: EventProp[] = [];
 
-    // flag to store if any event  a listener
+    // flag to store if any event emission invokes a listener
     let didInvokeAnyListener = false;
 
     // iterate through all registered events
@@ -102,12 +104,40 @@ export class BufferedEventEmitter {
         const bufferCapacity = event?.options.bufferCapacity ?? this._opts.bufferCapacity;
 
         if (event?.bucket && event.bucket.length >= bufferCapacity) {
+
+          // new event emissions should clear the timeout
+          if (event.bufferInactivityTimeoutId) {
+            clearTimeout(event.bufferInactivityTimeoutId);
+            event.bufferInactivityTimeoutId = undefined;
+          }
+
           event.fn(event.bucket);
           addToCache.call(this, eventName, event.bucket);
           didInvokeCurrentListener = true;
           didInvokeAnyListener = true;
           this._opts.logger("emit", eventName, event.bucket);
           event.bucket = [];
+        } else if (event?.bucket && event.bucket.length > 0) { // bucket less than bufferCapacity
+          
+          const timeoutDuration = event?.options?.bufferInactivityTimeout ?? this._opts.bufferInactivityTimeout;
+          // create inactivity timeout when bufferInactivityTimeout is set in listener or default config to something greater than 0ms
+          if (timeoutDuration > 0) {
+
+             // Clear existing timeout before creating new one
+            if (event.bufferInactivityTimeoutId) {
+              clearTimeout(event.bufferInactivityTimeoutId);
+              event.bufferInactivityTimeoutId = undefined;
+            }
+            event.bufferInactivityTimeoutId = setTimeout(() => {
+              if (event?.bucket && event.bucket.length) {
+                event.fn(event.bucket);
+                addToCache.call(this, eventName, event.bucket);
+                this._opts.logger("emit", eventName, event.bucket);
+                event.bucket = [];
+              }
+              event.bufferInactivityTimeoutId = undefined;
+            }, timeoutDuration);
+          }
         }
       } else {
         // non-buffered event handling
@@ -187,7 +217,11 @@ export class BufferedEventEmitter {
   off(eventName: string, listener: Listener, options?: ListenerOptions): boolean {
     let index = getListenerIdx(this._evts[eventName], listener, options);
     if (index === -1) return false;
-    this._evts[eventName].splice(index, 1);
+    const [event] = this._evts[eventName].splice(index, 1);
+    if (event.bufferInactivityTimeoutId) {
+      clearTimeout(event.bufferInactivityTimeoutId);
+      event.bufferInactivityTimeoutId = undefined;
+    }
     this._opts.logger("off", eventName, listener);
     return true;
   }
@@ -219,6 +253,11 @@ export class BufferedEventEmitter {
           (eventName && !listener && !options);
 
         if (shouldFlush) {
+          // clear timeout if defined
+          if (event.bufferInactivityTimeoutId) {
+            clearTimeout(event.bufferInactivityTimeoutId);
+            event.bufferInactivityTimeoutId = undefined;
+          }
           event.fn(event.bucket);
           addToCache.call(this, eventName, event.bucket);
           didAnyEmit = true;
@@ -329,6 +368,13 @@ export class BufferedEventEmitter {
    */
   offAll(eventName: string): Boolean {
     if (eventName && this._evts[eventName]?.length > 0) {
+      const events = this._evts[eventName]
+      events.forEach(event => {
+        if (event.bufferInactivityTimeoutId) {
+          clearTimeout(event.bufferInactivityTimeoutId);
+          event.bufferInactivityTimeoutId = undefined;
+        }
+      })
       delete this._evts[eventName];
       this._pEvtsQ = this._pEvtsQ.filter((e) => e.name !== eventName);
       this._pEvtsConf.delete(eventName);
@@ -344,6 +390,14 @@ export class BufferedEventEmitter {
     this._pEvtsConf.clear();
     this._pEvtsQ = [];
     this._cache.clear();
+    Object.values(this._evts).forEach(events => {
+      events.forEach(event => {
+        if (event.bufferInactivityTimeoutId) {
+          clearTimeout(event.bufferInactivityTimeoutId);
+          event.bufferInactivityTimeoutId = undefined;
+        }
+      })
+    })
     this._evts = {};
   }
 

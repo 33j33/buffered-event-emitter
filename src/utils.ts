@@ -11,7 +11,7 @@ export class EventProp {
   public once: boolean;
   public options: ListenerOptions | undefined;
   public bucket?: EventData[];
-  public timeoutID?: ReturnType<typeof setTimeout>;
+  public bufferInactivityTimeoutId?: ReturnType<typeof setTimeout>;
 
   constructor(name: string, fn: Listener, once: boolean, options: ListenerOptions | undefined) {
     this.name = name;
@@ -20,7 +20,7 @@ export class EventProp {
     this.options = options;
     if (options?.buffered) {
       this.bucket = [];
-      this.timeoutID = undefined;
+      this.bufferInactivityTimeoutId = undefined;
     }
   }
 }

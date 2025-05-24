@@ -8,6 +8,7 @@ export type ListenerOptions = {
   buffered?: boolean;
   bufferCapacity?: number;
   control?: EventController;
+  bufferInactivityTimeout?: number
 };
 
 export type BufferOptions = Omit<ListenerOptions, "control">;
