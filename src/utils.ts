@@ -1,6 +1,5 @@
-import { BufferedEventEmitter } from "./bufferedEventEmitter";
 import { ALL_EVENTS, EMIT_STATUS } from "./constants";
-import { EventData, Listener, ListenerOptions } from "./types";
+import { EventData, Listener, ListenerOptions, IBufferedEventEmitter, DebugStatus } from "./types";
 
 /**
  * Event Properties
@@ -97,21 +96,28 @@ export function getListenerIdx(
   return -1;
 }
 
-export async function emitAfterTimeout(
-  this: BufferedEventEmitter,
+export function emitAfterTimeout(
+  this: IBufferedEventEmitter,
   payload: { name: string; data?: EventData },
   ms: number
 ) {
   let timeoutId: ReturnType<typeof setTimeout>;
   return new Promise(
     (resolve) =>
-      (timeoutId = setTimeout(() => {
-        this.emit(payload.name, payload.data);
-        resolve(true);
-      }, ms))
+    (timeoutId = setTimeout(() => {
+      this.emit(payload.name, payload.data);
+      resolve(true);
+    }, ms))
   ).finally(() => {
     clearTimeout(timeoutId);
   });
+}
+
+// shared debug state for BufferedEventEmitter
+export let debugStatus: DebugStatus = { emit: false, on: false, off: false };
+
+export function updateDebugStatus(opts: { emit?: boolean; on?: boolean; off?: boolean }) {
+  debugStatus = { ...debugStatus, ...opts }
 }
 
 export function logger(
@@ -120,9 +126,9 @@ export function logger(
   eventData?: EventData | Listener
 ) {
   if (
-    (type === "emit" && !BufferedEventEmitter.debugStatus.emit) ||
-    (type === "on" && !BufferedEventEmitter.debugStatus.on) ||
-    (type === "off" && !BufferedEventEmitter.debugStatus.off)
+    (type === "emit" && !debugStatus.emit) ||
+    (type === "on" && !debugStatus.on) ||
+    (type === "off" && !debugStatus.off)
   )
     return;
 
@@ -150,14 +156,14 @@ export function logger(
 }
 
 export class EventController {
-  flush() {}
-  off() {}
+  flush() { }
+  off() { }
 }
 
 const controls: Map<EventController, EventProp[]> = new Map();
 
 export function attachControls(
-  this: BufferedEventEmitter,
+  this: IBufferedEventEmitter,
   control: EventController,
   eventProp: EventProp
 ) {
@@ -174,19 +180,4 @@ export function attachControls(
       this.flush(p.name, p.fn, p.options);
     });
   };
-}
-
-export function addToCache(
-  this: BufferedEventEmitter,
-  eventName: string,
-  data: EventData | EventData[]
-) {
-  if (!this._opts.cache) return;
-  const arr = this._cache.get(eventName);
-  const newArr = arr || [];
-  if (newArr.length >= this._opts.cacheCapacity) {
-    newArr.shift();
-  }
-  newArr.push(data);
-  this._cache.set(eventName, newArr);
 }

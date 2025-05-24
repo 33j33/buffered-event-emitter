@@ -9,7 +9,7 @@ import {
   EMIT_STATUS,
   DEFAULT_BUFFER_INACTIVITY_TIMEOUT,
 } from "./constants";
-import { EventData, Events, InitOptions, Listener, ListenerOptions } from "./types";
+import { DebugStatus, EventData, Events, IBufferedEventEmitter, InitOptions, Listener, ListenerOptions } from "./types";
 import {
   EventProp,
   EventController,
@@ -19,17 +19,16 @@ import {
   logger,
   attachControls,
   PausedEvtsProp,
-  addToCache,
+  debugStatus,
+  updateDebugStatus
 } from "./utils";
 
-export class BufferedEventEmitter {
+export class BufferedEventEmitter implements IBufferedEventEmitter {
   protected _evts: Events;
   protected _opts: Required<InitOptions>;
   protected _pEvtsConf: Map<string, PausedEvtsProp>; // stores paused events config
   protected _pEvtsQ: { name: string; data: EventData }[]; // store paused events data
   protected _cache: Map<string, EventData[]>;
-
-  public static debugStatus = { emit: false, on: false, off: false };
 
   constructor(options?: InitOptions) {
     this._evts = {};
@@ -415,7 +414,7 @@ export class BufferedEventEmitter {
    * @param eventName - event name
    * @returns cached event data
    */
-  getCache(eventName: string) {
+  getCache(eventName: string): EventData[] | EventData {
     return this._cache.get(eventName) || [];
   }
 
@@ -424,10 +423,14 @@ export class BufferedEventEmitter {
    * @param opts
    */
   static enableDebug(opts: { emit?: boolean; on?: boolean; off?: boolean }) {
-    BufferedEventEmitter.debugStatus = {
-      ...BufferedEventEmitter.debugStatus,
-      ...opts,
-    };
+    updateDebugStatus(opts)
+  }
+
+  /**
+   * Returns DebugStatus
+   */
+  static get debugStatus(): DebugStatus{
+    return debugStatus
   }
 }
 
@@ -455,3 +458,19 @@ export interface BufferedEventEmitter {
 }
 BufferedEventEmitter.prototype.addListener = BufferedEventEmitter.prototype.on;
 BufferedEventEmitter.prototype.removeListener = BufferedEventEmitter.prototype.off;
+
+
+function addToCache(
+  this: BufferedEventEmitter,
+  eventName: string,
+  data: EventData | EventData[]
+) {
+  if (!this._opts.cache) return;
+  const arr = this._cache.get(eventName);
+  const newArr = arr || [];
+  if (newArr.length >= this._opts.cacheCapacity) {
+    newArr.shift();
+  }
+  newArr.push(data);
+  this._cache.set(eventName, newArr);
+}
