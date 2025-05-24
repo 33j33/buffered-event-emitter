@@ -29,8 +29,6 @@ export class BufferedEventEmitter implements IBufferedEventEmitter {
   protected _pEvtsQ: { name: string; data: EventData }[]; // store paused events data
   protected _cache: Map<string, EventData[]>;
 
-  // public static debugStatus: DebugStatus = { emit: false, on: false, off: false };
-
   constructor(options?: InitOptions) {
     this._evts = {};
     this._opts = {

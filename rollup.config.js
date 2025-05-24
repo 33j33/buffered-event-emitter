@@ -23,7 +23,7 @@ export default {
       file: "lib/bundle.esm.min.mjs",
       format: "esm",
       sourcemap: true,
-      plugins: [terser()],
+      plugins: [terser({sourceMap: true})],
     },
     {
       file: "lib/bundle.umd.js",
@@ -37,7 +37,7 @@ export default {
       name: pkg.name,
       sourcemap: true,
       footer,
-      plugins: [terser()],
+      plugins: [terser({sourceMap: true})],
     },
   ],
 };
