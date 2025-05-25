@@ -9,4 +9,5 @@ export declare const EMIT_STATUS: {
     readonly PAUSED: "0";
     readonly EMITTING: "1";
 };
+export declare const DEFAULT_BUFFER_INACTIVITY_TIMEOUT = 0;
 //# sourceMappingURL=constants.d.ts.map

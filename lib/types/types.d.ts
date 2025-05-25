@@ -23,6 +23,7 @@ export declare type ListenerOptions = {
     buffered?: boolean;
     bufferCapacity?: number;
     control?: EventController;
+    bufferInactivityTimeout?: number;
 };
 export declare type BufferOptions = Omit<ListenerOptions, "control">;
 export declare type InitOptions = BufferOptions & {

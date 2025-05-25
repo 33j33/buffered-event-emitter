@@ -9,7 +9,7 @@ export declare class EventProp {
     once: boolean;
     options: ListenerOptions | undefined;
     bucket?: EventData[];
-    timeoutID?: ReturnType<typeof setTimeout>;
+    bufferInactivityTimeoutId?: ReturnType<typeof setTimeout>;
     constructor(name: string, fn: Listener, once: boolean, options: ListenerOptions | undefined);
 }
 declare type PauseEventName = string | typeof ALL_EVENTS;
