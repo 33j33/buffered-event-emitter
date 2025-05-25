@@ -104,10 +104,10 @@ export function emitAfterTimeout(
   let timeoutId: ReturnType<typeof setTimeout>;
   return new Promise(
     (resolve) =>
-    (timeoutId = setTimeout(() => {
-      this.emit(payload.name, payload.data);
-      resolve(true);
-    }, ms))
+      (timeoutId = setTimeout(() => {
+        this.emit(payload.name, payload.data);
+        resolve(true);
+      }, ms))
   ).finally(() => {
     clearTimeout(timeoutId);
   });
@@ -117,7 +117,7 @@ export function emitAfterTimeout(
 export let debugStatus: DebugStatus = { emit: false, on: false, off: false };
 
 export function updateDebugStatus(opts: { emit?: boolean; on?: boolean; off?: boolean }) {
-  debugStatus = { ...debugStatus, ...opts }
+  debugStatus = { ...debugStatus, ...opts };
 }
 
 export function logger(
@@ -156,8 +156,8 @@ export function logger(
 }
 
 export class EventController {
-  flush() { }
-  off() { }
+  flush() {}
+  off() {}
 }
 
 const controls: Map<EventController, EventProp[]> = new Map();

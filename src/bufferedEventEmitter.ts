@@ -9,7 +9,15 @@ import {
   EMIT_STATUS,
   DEFAULT_BUFFER_INACTIVITY_TIMEOUT,
 } from "./constants";
-import { DebugStatus, EventData, Events, IBufferedEventEmitter, InitOptions, Listener, ListenerOptions } from "./types";
+import {
+  DebugStatus,
+  EventData,
+  Events,
+  IBufferedEventEmitter,
+  InitOptions,
+  Listener,
+  ListenerOptions,
+} from "./types";
 import {
   EventProp,
   EventController,
@@ -20,7 +28,7 @@ import {
   attachControls,
   PausedEvtsProp,
   debugStatus,
-  updateDebugStatus
+  updateDebugStatus,
 } from "./utils";
 
 export class BufferedEventEmitter implements IBufferedEventEmitter {
@@ -35,13 +43,14 @@ export class BufferedEventEmitter implements IBufferedEventEmitter {
     this._opts = {
       buffered: options?.buffered ?? DEFAULT_IS_BUFFERED,
       bufferCapacity: options?.bufferCapacity ?? DEFAULT_BUFFER_CAPACITY,
-      bufferInactivityTimeout: options?.bufferInactivityTimeout ?? DEFAULT_BUFFER_INACTIVITY_TIMEOUT,
+      bufferInactivityTimeout:
+        options?.bufferInactivityTimeout ?? DEFAULT_BUFFER_INACTIVITY_TIMEOUT,
       logger: options?.logger ?? logger,
       cache: options?.cache ?? DEFAULT_IS_CACHE,
-      cacheCapacity: options?.cacheCapacity ?? DEFAULT_CACHE_CAPACITY
+      cacheCapacity: options?.cacheCapacity ?? DEFAULT_CACHE_CAPACITY,
     };
     // Initialize pause/resume configuration with default "emitting" state for all events.
-    // This ensures ALL_EVENTS always exists for global pause/resume operations and 
+    // This ensures ALL_EVENTS always exists for global pause/resume operations and
     // eliminates null checks when determining if events should be paused or queued.
     this._pEvtsConf = new Map([
       [
@@ -87,14 +96,16 @@ export class BufferedEventEmitter implements IBufferedEventEmitter {
       return false;
     }
 
-    // collect listeners for event which are not 'once' and not invoked
-    let remainingListeners: EventProp[] = [];
+    let emittedOnceListeners: EventProp[] = [];
 
     // flag to store if any event emission invokes a listener
     let didInvokeAnyListener = false;
 
+    // removing listeners shouldn't affect current emission process
+    const listeners = [...this._evts[eventName]];
+
     // iterate through all registered events
-    this._evts[eventName].forEach((event: EventProp) => {
+    listeners.forEach((event: EventProp) => {
       let didInvokeCurrentListener = false;
 
       // buffered event handling
@@ -103,7 +114,6 @@ export class BufferedEventEmitter implements IBufferedEventEmitter {
         const bufferCapacity = event?.options.bufferCapacity ?? this._opts.bufferCapacity;
 
         if (event?.bucket && event.bucket.length >= bufferCapacity) {
-
           // new event emissions should clear the timeout
           if (event.bufferInactivityTimeoutId) {
             clearTimeout(event.bufferInactivityTimeoutId);
@@ -116,13 +126,14 @@ export class BufferedEventEmitter implements IBufferedEventEmitter {
           didInvokeAnyListener = true;
           this._opts.logger("emit", eventName, event.bucket);
           event.bucket = [];
-        } else if (event?.bucket && event.bucket.length > 0) { // bucket less than bufferCapacity
-          
-          const timeoutDuration = event?.options?.bufferInactivityTimeout ?? this._opts.bufferInactivityTimeout;
+        } else if (event?.bucket && event.bucket.length > 0) {
+          // bucket less than bufferCapacity
+
+          const timeoutDuration =
+            event?.options?.bufferInactivityTimeout ?? this._opts.bufferInactivityTimeout;
           // create inactivity timeout when bufferInactivityTimeout is set in listener or default config to something greater than 0ms
           if (timeoutDuration > 0) {
-
-             // Clear existing timeout before creating new one
+            // Clear existing timeout before creating new one
             if (event.bufferInactivityTimeoutId) {
               clearTimeout(event.bufferInactivityTimeoutId);
               event.bufferInactivityTimeoutId = undefined;
@@ -147,12 +158,13 @@ export class BufferedEventEmitter implements IBufferedEventEmitter {
         this._opts.logger("emit", eventName, data);
       }
 
-      // filter out once emitted listeners
-      if (!(event.once && didInvokeCurrentListener)) {
-        remainingListeners.push(event);
+      // capture once emitted listeners
+      if (event.once && didInvokeCurrentListener) {
+        emittedOnceListeners.push(event);
       }
     });
-    this._evts[eventName] = remainingListeners;
+    this._evts[eventName] =
+      this._evts?.[eventName]?.filter((event) => !emittedOnceListeners.includes(event)) ?? [];
     return didInvokeAnyListener;
   }
 
@@ -169,6 +181,7 @@ export class BufferedEventEmitter implements IBufferedEventEmitter {
       this._evts[eventName] = [];
     }
     // dedupe listeners
+    // TODO - do we need to support registering same listener with different options?
     let index = getListenerIdx(this._evts[eventName], listener, options);
     if (index !== -1) return false;
     const eventProp = new EventProp(eventName, listener, false, options);
@@ -214,6 +227,7 @@ export class BufferedEventEmitter implements IBufferedEventEmitter {
    * @returns `true` if listener was removed `false` otherwise.
    */
   off(eventName: string, listener: Listener, options?: ListenerOptions): boolean {
+    if (!this._evts[eventName] || this._evts[eventName].length === 0) return false;
     let index = getListenerIdx(this._evts[eventName], listener, options);
     if (index === -1) return false;
     const [event] = this._evts[eventName].splice(index, 1);
@@ -240,16 +254,21 @@ export class BufferedEventEmitter implements IBufferedEventEmitter {
    */
   public flush(eventName: string, listener: Listener, options?: ListenerOptions): boolean;
   flush(eventName: string, listener?: Listener, options?: ListenerOptions) {
-    let didAnyEmit = false;
-    let emittedOnceListenerIndexes: number[] = [];
-    this._evts[eventName].forEach((event, idx) => {
+    if (!this._evts[eventName] || this._evts[eventName].length === 0) return false;
+    let didAnyFlush = false;
+    let emittedOnceListeners: EventProp[] = [];
+    // removing listeners shouldn't affect current emission process
+    const listeners = [...this._evts[eventName]];
+
+    listeners.forEach((event) => {
       if (event?.options?.buffered && event?.bucket && event.bucket.length > 0) {
         const matchesListenerFn = listener && listener === event.fn;
         const matchesOptions = options && checkListenerOptionsEquality(options, event.options);
 
         const shouldFlush =
-          (eventName && matchesListenerFn && matchesOptions) ||
-          (eventName && !listener && !options);
+          (matchesListenerFn && matchesOptions) ||
+          (matchesListenerFn && !options) ||
+          (!listener && !options);
 
         if (shouldFlush) {
           // clear timeout if defined
@@ -259,17 +278,19 @@ export class BufferedEventEmitter implements IBufferedEventEmitter {
           }
           event.fn(event.bucket);
           addToCache.call(this, eventName, event.bucket);
-          didAnyEmit = true;
+          didAnyFlush = true;
+
           this._opts.logger("emit", eventName, event.bucket);
           event.bucket = [];
-          if (event.once) emittedOnceListenerIndexes.push(idx);
+          if (event.once) emittedOnceListeners.push(event);
         }
       }
     });
-    this._evts[eventName] = this._evts[eventName].filter(
-      (_, idx) => !emittedOnceListenerIndexes.includes(idx)
-    );
-    return didAnyEmit;
+
+    this._evts[eventName] =
+      this._evts?.[eventName]?.filter((event) => !emittedOnceListeners.includes(event)) ?? [];
+
+    return didAnyFlush;
   }
 
   /**
@@ -367,13 +388,13 @@ export class BufferedEventEmitter implements IBufferedEventEmitter {
    */
   offAll(eventName: string): Boolean {
     if (eventName && this._evts[eventName]?.length > 0) {
-      const events = this._evts[eventName]
-      events.forEach(event => {
+      const events = this._evts[eventName];
+      events.forEach((event) => {
         if (event.bufferInactivityTimeoutId) {
           clearTimeout(event.bufferInactivityTimeoutId);
           event.bufferInactivityTimeoutId = undefined;
         }
-      })
+      });
       delete this._evts[eventName];
       this._pEvtsQ = this._pEvtsQ.filter((e) => e.name !== eventName);
       this._pEvtsConf.delete(eventName);
@@ -389,14 +410,14 @@ export class BufferedEventEmitter implements IBufferedEventEmitter {
     this._pEvtsConf.clear();
     this._pEvtsQ = [];
     this._cache.clear();
-    Object.values(this._evts).forEach(events => {
-      events.forEach(event => {
+    Object.values(this._evts).forEach((events) => {
+      events.forEach((event) => {
         if (event.bufferInactivityTimeoutId) {
           clearTimeout(event.bufferInactivityTimeoutId);
           event.bufferInactivityTimeoutId = undefined;
         }
-      })
-    })
+      });
+    });
     this._evts = {};
   }
 
@@ -406,6 +427,7 @@ export class BufferedEventEmitter implements IBufferedEventEmitter {
     if (eventName === undefined) {
       return this._evts;
     } else {
+      if (!this._evts[eventName]) return [];
       return this._evts[eventName].map((event) => event.fn);
     }
   }
@@ -423,14 +445,14 @@ export class BufferedEventEmitter implements IBufferedEventEmitter {
    * @param opts
    */
   static enableDebug(opts: { emit?: boolean; on?: boolean; off?: boolean }) {
-    updateDebugStatus(opts)
+    updateDebugStatus(opts);
   }
 
   /**
    * Returns DebugStatus
    */
-  static get debugStatus(): DebugStatus{
-    return debugStatus
+  static get debugStatus(): DebugStatus {
+    return debugStatus;
   }
 }
 
@@ -459,12 +481,7 @@ export interface BufferedEventEmitter {
 BufferedEventEmitter.prototype.addListener = BufferedEventEmitter.prototype.on;
 BufferedEventEmitter.prototype.removeListener = BufferedEventEmitter.prototype.off;
 
-
-function addToCache(
-  this: BufferedEventEmitter,
-  eventName: string,
-  data: EventData | EventData[]
-) {
+function addToCache(this: BufferedEventEmitter, eventName: string, data: EventData | EventData[]) {
   if (!this._opts.cache) return;
   const arr = this._cache.get(eventName);
   const newArr = arr || [];

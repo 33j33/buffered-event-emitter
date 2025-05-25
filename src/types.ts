@@ -14,15 +14,15 @@ export interface IBufferedEventEmitter {
   resume(eventName?: string): Promise<void> | void;
   offAll(eventName: string): Boolean;
   cleanup(): void;
-  listeners(eventName?: string): Listener[]
-  getCache(eventName: string): EventData[]
+  listeners(eventName?: string): Listener[];
+  getCache(eventName: string): EventData[];
 }
 
 export type ListenerOptions = {
   buffered?: boolean;
   bufferCapacity?: number;
   control?: EventController;
-  bufferInactivityTimeout?: number
+  bufferInactivityTimeout?: number;
 };
 
 export type BufferOptions = Omit<ListenerOptions, "control">;
@@ -33,7 +33,7 @@ export type InitOptions = BufferOptions & {
   cacheCapacity?: number;
 };
 
-export type DebugStatus = { emit: Boolean, on: Boolean, off: Boolean }
+export type DebugStatus = { emit: Boolean; on: Boolean; off: Boolean };
 
 export type EventData = any;
 

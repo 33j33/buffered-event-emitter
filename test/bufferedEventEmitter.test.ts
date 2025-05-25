@@ -9,11 +9,11 @@ beforeEach(async () => {
 
 describe("#init", function () {
   it("should initialise BufferedEventEmitter with given options", function () {
-    const logger = () => { };
+    const logger = () => {};
     const options = { buffered: true, bufferCapacity: 3, logger, cache: true, cacheCapacity: 10 };
     const emitter = new BufferedEventEmitter(options);
     // @ts-ignore
-    expect(emitter._opts).toStrictEqual({...options, bufferInactivityTimeout: 0});
+    expect(emitter._opts).toStrictEqual({ ...options, bufferInactivityTimeout: 0 });
   });
 });
 
@@ -28,7 +28,7 @@ describe("fn#enableDebug()", function () {
     const debugOpts = { emit: true, on: true, off: true };
     BufferedEventEmitter.enableDebug(debugOpts);
     expect(BufferedEventEmitter.debugStatus).toStrictEqual(debugOpts);
-    const noop = () => { };
+    const noop = () => {};
     emitterOne.on("foo", noop);
     emitterOne.emit("foo");
     emitterTwo.on("bar", noop);
@@ -42,7 +42,7 @@ describe("fn#enableDebug()", function () {
 describe("fn#emit()", function () {
   it("should return true when event is emitted and false when there are no events to emit", function () {
     const emitter = new BufferedEventEmitter();
-    const listener = () => { };
+    const listener = () => {};
     emitter.on("bar", listener);
     expect(emitter.emit("foo")).toBe(false);
     expect(emitter.emit("bar")).toBe(true);
@@ -76,6 +76,34 @@ describe("fn#emit()", function () {
 
     emitter.emit("bar");
     expect(calls).toStrictEqual([0, 1, 2]);
+  });
+
+  it("should not affect current emission when a listener removes another", function () {
+    const emitter = new BufferedEventEmitter();
+    const calls: string[] = [];
+
+    function listener1(num: number) {
+      calls.push(`listener1_${num}`);
+      emitter.off("foo", listener2); // shouldn't affect current emission
+    }
+
+    function listener2(num: number) {
+      emitter.offAll("foo");
+      calls.push(`listener2_${num}`);
+    }
+
+    function listener3(num: number) {
+      calls.push(`listener3_${num}`);
+    }
+
+    emitter.on("foo", listener1);
+    emitter.on("foo", listener2);
+    emitter.on("foo", listener3);
+
+    emitter.emit("foo", 22);
+    expect(calls).toStrictEqual(["listener1_22", "listener2_22", "listener3_22"]);
+    expect(emitter.emit("foo", 22)).toBe(false);
+    expect(emitter.listeners("foo").length).toBe(0);
   });
 });
 
@@ -131,8 +159,7 @@ describe("fn#on()", function () {
     expect(calls).toStrictEqual([[1, 2], [3, 4], [5]]);
   });
 
-  describe('should add buffered listener with inactivity timeout', () => {
-
+  describe("should add buffered listener with inactivity timeout", () => {
     // Use fake timers before each test in this describe block
     beforeEach(() => {
       jest.useFakeTimers();
@@ -147,7 +174,11 @@ describe("fn#on()", function () {
       const emitter = new BufferedEventEmitter();
       const listener = jest.fn();
       // register listener with timeout of 1sec
-      emitter.on("bar", listener, { buffered: true, bufferCapacity: 10, bufferInactivityTimeout: 1000 });
+      emitter.on("bar", listener, {
+        buffered: true,
+        bufferCapacity: 10,
+        bufferInactivityTimeout: 1000,
+      });
 
       // buffer is [2], timeout starts
       emitter.emit("bar", 2);
@@ -265,6 +296,36 @@ describe("fn#off()", function () {
   });
 });
 
+describe("fn#offAll()", function () {
+  it("should remove all listeners for a given event", function () {
+    const emitter = new BufferedEventEmitter();
+    let count = 0;
+
+    const listenerA = (arg: number) => {
+      count += arg;
+    };
+    const listenerB = (arg: number) => {
+      count += arg * 2;
+    };
+
+    emitter.on("baz", listenerA);
+    emitter.on("baz", listenerB, { buffered: true });
+    emitter.on("baz", listenerA, { buffered: true, bufferCapacity: 3 });
+
+    expect(emitter.listeners("baz").length).toBe(3);
+
+    expect(emitter.offAll("baz")).toBe(true);
+
+    // emit should have no effect as listeners were removed
+    expect(emitter.emit("baz", 10)).toBe(false);
+    expect(count).toBe(0);
+    expect(emitter.listeners("baz").length).toBe(0);
+
+    // calling again should return false (nothing left to remove)
+    expect(emitter.offAll("baz")).toBe(false);
+  });
+});
+
 describe("fn#flush()", function () {
   it("should flush buffered events for listener identified by event name, listener and options", function () {
     const emitter = new BufferedEventEmitter();
@@ -272,17 +333,46 @@ describe("fn#flush()", function () {
     const listener = (arr: number[]) => {
       calls.push(arr);
     };
+    emitter.on("bar", listener, { buffered: true, bufferCapacity: 4 });
     emitter.on("bar", listener, { buffered: true, bufferCapacity: 3 });
-    emitter.on("bar", listener, { buffered: true, bufferCapacity: 2 });
 
     expect(emitter.emit("bar", 1)).toBe(false);
-    expect(emitter.emit("bar", 2)).toBe(true);
-    expect(emitter.emit("bar", 3)).toBe(true);
+    expect(emitter.emit("bar", 2)).toBe(false);
 
-    expect(emitter.flush("bar", listener, { buffered: true, bufferCapacity: 2 })).toBe(true);
+    expect(emitter.flush("bar", listener, { buffered: true, bufferCapacity: 3 })).toBe(true);
 
-    expect(calls).toStrictEqual([[1, 2], [1, 2, 3], [3]]);
+    expect(calls).toStrictEqual([[1, 2]]);
+
+    expect(emitter.emit("bar", 3)).toBe(false);
+
+    expect(emitter.flush("bar", listener, { buffered: true, bufferCapacity: 4 })).toBe(true);
+
+    expect(calls).toStrictEqual([
+      [1, 2],
+      [1, 2, 3],
+    ]);
   });
+  it("should flush buffered events for listener identified by event name and listener", function () {
+    const emitter = new BufferedEventEmitter();
+    const calls: number[][] = [];
+    const listener = (arr: number[]) => {
+      calls.push(arr);
+    };
+
+    emitter.on("bar", listener, { buffered: true, bufferCapacity: 4 });
+    emitter.on("bar", listener, { buffered: true, bufferCapacity: 3 });
+
+    expect(emitter.emit("bar", 1)).toBe(false);
+    expect(emitter.emit("bar", 2)).toBe(false);
+
+    expect(emitter.flush("bar", listener)).toBe(true); // both listeners are flushed
+
+    expect(calls).toStrictEqual([
+      [1, 2],
+      [1, 2],
+    ]);
+  });
+
   it("should flush buffered events for all listeners when only event name is provided", function () {
     const emitter = new BufferedEventEmitter();
     const calls: number[][] = [];
