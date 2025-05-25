@@ -1,13 +1,9 @@
-// @ts-ignore
-// import { BufferedEventEmitter } from "@buffered-event-emitter"; // test different builds using moduleMapper
-// import { BufferedEventEmitter } from "../src";
-
 // reset Module before each test
-let BufferedEventEmitter: typeof import("../src").BufferedEventEmitter;
-let EventController: typeof import("../src").EventController;
+let BufferedEventEmitter: typeof import("@buffered-event-emitter").BufferedEventEmitter;
+let EventController: typeof import("@buffered-event-emitter").EventController;
 beforeEach(async () => {
-  EventController = (await import("../src")).EventController;
-  BufferedEventEmitter = (await import("../src")).BufferedEventEmitter;
+  EventController = (await import("@buffered-event-emitter")).EventController;
+  BufferedEventEmitter = (await import("@buffered-event-emitter")).BufferedEventEmitter;
   jest.resetModules();
 });
 

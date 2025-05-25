@@ -9,6 +9,6 @@ module.exports = {
   },
   moduleNameMapper: {
     "^@buffered-event-emitter$": "<rootDir>/src"
-    // "^@buffered-event-emitter$": "<rootDir>/lib/bundle.esm.min.js"
+    // "^@buffered-event-emitter$": "<rootDir>/lib/bundle.umd.js" // uncomment this to test different builds using moduleMapper
   }
 };
