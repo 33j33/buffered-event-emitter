@@ -327,6 +327,13 @@ describe("fn#offAll()", function () {
 });
 
 describe("fn#flush()", function () {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
   it("should flush buffered events for listener identified by event name, listener and options", function () {
     const emitter = new BufferedEventEmitter();
     const calls: number[][] = [];
@@ -394,6 +401,101 @@ describe("fn#flush()", function () {
       [1, 2, 3],
       [1, 2],
     ]);
+  });
+
+  it("should not flush buffer via timeout after flush() is called", () => {
+    const emitter = new BufferedEventEmitter();
+    const listener = jest.fn();
+    const timeout = 1000;
+
+    emitter.on("bufferedEvent", listener, {
+      buffered: true,
+      bufferCapacity: 10,
+      bufferInactivityTimeout: timeout,
+    });
+
+    emitter.emit("bufferedEvent", "data1");
+    emitter.emit("bufferedEvent", "data2");
+    expect(listener).not.toHaveBeenCalled();
+
+    // Advance time, but not enough for timeout
+    jest.advanceTimersByTime(timeout / 2);
+    expect(listener).not.toHaveBeenCalled();
+
+    // flush the buffer before timeout fires
+    const didFlush = emitter.flush("bufferedEvent");
+    expect(didFlush).toBe(true);
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(listener).toHaveBeenCalledWith(["data1", "data2"]);
+
+    // Advance time past the original timeout duration. The timeout should have been cleared by flush.
+    jest.advanceTimersByTime(timeout);
+    expect(listener).toHaveBeenCalledTimes(1); // No additional calls
+  });
+
+  it("should not flush buffer via timeout after off() is called", () => {
+    const emitter = new BufferedEventEmitter();
+    const listener = jest.fn();
+    const timeout = 1000;
+    const capacity = 10;
+
+    emitter.on("bufferedEvent", listener, {
+      buffered: true,
+      bufferCapacity: capacity,
+      bufferInactivityTimeout: timeout,
+    });
+
+    emitter.emit("bufferedEvent", "data1");
+    emitter.emit("bufferedEvent", "data2");
+    expect(listener).not.toHaveBeenCalled();
+
+    // Advance time, but not enough for timeout
+    jest.advanceTimersByTime(timeout / 2);
+    expect(listener).not.toHaveBeenCalled();
+
+    // Remove the listener before timeout fires
+    const didOff = emitter.off("bufferedEvent", listener, {
+      buffered: true,
+      bufferCapacity: capacity,
+      bufferInactivityTimeout: timeout,
+    });
+    expect(didOff).toBe(true);
+    expect(emitter.listeners("bufferedEvent").length).toBe(0);
+    expect(listener).not.toHaveBeenCalled(); // Listener should not have been called
+
+    // Advance time past the original timeout duration. The timeout should have been cleared by off.
+    jest.advanceTimersByTime(timeout);
+    expect(listener).not.toHaveBeenCalled(); // No additional calls
+  });
+
+  it("should not flush buffer via timeout after cleanup() is called", () => {
+    const emitter = new BufferedEventEmitter();
+    const listener = jest.fn();
+    const timeout = 1000;
+    const capacity = 10;
+
+    emitter.on("bufferedEvent", listener, {
+      buffered: true,
+      bufferCapacity: capacity,
+      bufferInactivityTimeout: timeout,
+    });
+
+    emitter.emit("bufferedEvent", "data1");
+    emitter.emit("bufferedEvent", "data2");
+    expect(listener).not.toHaveBeenCalled();
+
+    // Advance time, but not enough for timeout
+    jest.advanceTimersByTime(timeout / 2);
+    expect(listener).not.toHaveBeenCalled();
+
+    // Remove the listener before timeout fires
+    emitter.cleanup();
+    expect(emitter.listeners("bufferedEvent").length).toBe(0);
+    expect(listener).not.toHaveBeenCalled();
+
+    // Advance time past the original timeout duration. The timeout should have been cleared by off.
+    jest.advanceTimersByTime(timeout);
+    expect(listener).not.toHaveBeenCalled(); // No additional calls
   });
 });
 

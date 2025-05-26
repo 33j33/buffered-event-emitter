@@ -207,6 +207,7 @@ export class BufferedEventEmitter implements IBufferedEventEmitter {
       this._evts[eventName] = [];
     }
     // dedupe listeners
+    // TODO - do we need to support registering same listener with different options?
     let index = getListenerIdx(this._evts[eventName], listener, options);
     if (index !== -1) return false;
     const eventProp = new EventProp(eventName, listener, true, options);
@@ -228,6 +229,8 @@ export class BufferedEventEmitter implements IBufferedEventEmitter {
    */
   off(eventName: string, listener: Listener, options?: ListenerOptions): boolean {
     if (!this._evts[eventName] || this._evts[eventName].length === 0) return false;
+
+    // TODO - do we need to disallow removing a listener if the options are not provided?
     let index = getListenerIdx(this._evts[eventName], listener, options);
     if (index === -1) return false;
     const [event] = this._evts[eventName].splice(index, 1);
