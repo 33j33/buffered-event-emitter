@@ -9,3 +9,4 @@ export const EMIT_STATUS = {
   PAUSED: "0",
   EMITTING: "1",
 } as const;
+export const DEFAULT_BUFFER_INACTIVITY_TIMEOUT = 0; // inactivity timeout default (in ms). 0 means “no auto-flush”.

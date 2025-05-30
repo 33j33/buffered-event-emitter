@@ -12,8 +12,14 @@
     "declarationMap": true,
     "esModuleInterop": true,
     "declarationDir": "./lib/types",
+    "baseUrl": ".",
+    "paths": {
+      "@buffered-event-emitter": [
+        "src/index.ts"
+      ]
+    },
     "moduleResolution": "Node" // used in order to enforce specifying .js on relative imports
   },
-  "include": ["src/*"],
+  "include": ["src/*", "test/*"],
   "exclude": ["node_modules"]
 }
