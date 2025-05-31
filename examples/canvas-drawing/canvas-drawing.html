@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Buffered Canvas Drawing - Host & Participant</title>
+    <style>
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background-color: #f5f5f5;
+      }
+
+      h1 {
+        color: #333;
+        margin-bottom: 10px;
+      }
+
+      .description {
+        text-align: center;
+        margin-bottom: 20px;
+        color: #666;
+        max-width: 600px;
+      }
+
+      .canvas-container {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .canvas-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .canvas-label {
+        font-weight: bold;
+        margin-bottom: 10px;
+        padding: 8px 16px;
+        border-radius: 20px;
+        color: white;
+        text-transform: uppercase;
+        font-size: 14px;
+        letter-spacing: 1px;
+      }
+
+      .host-label {
+        background: linear-gradient(135deg, #007bff, #0056b3);
+      }
+
+      .participant-label {
+        background: linear-gradient(135deg, #28a745, #1e7e34);
+      }
+
+      canvas {
+        border: 2px solid #ddd;
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        touch-action: none;
+      }
+
+      #hostCanvas {
+        cursor: crosshair;
+        border-color: #007bff;
+      }
+
+      #participantCanvas {
+        cursor: not-allowed;
+        border-color: #28a745;
+      }
+
+      .controls {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 25px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      #clearButton {
+        background: linear-gradient(135deg, #dc3545, #c82333);
+        color: white;
+      }
+
+      #clearButton:hover {
+        background: linear-gradient(135deg, #c82333, #a71e2a);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+      }
+
+      .status {
+        display: flex;
+        gap: 20px;
+        margin-top: 15px;
+        font-size: 14px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .status-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        background: white;
+        border-radius: 15px;
+        border: 1px solid #ddd;
+      }
+
+      .status-indicator {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #28a745;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0% {
+          opacity: 1;
+        }
+
+        50% {
+          opacity: 0.5;
+        }
+
+        100% {
+          opacity: 1;
+        }
+      }
+
+      .batch-info {
+        color: #666;
+        font-size: 12px;
+        text-align: center;
+        margin-top: 10px;
+        font-style: italic;
+      }
+
+      @media (max-width: 768px) {
+        .canvas-container {
+          flex-direction: column;
+          gap: 15px;
+        }
+
+        canvas {
+          width: 90vw;
+          max-width: 400px;
+          height: 300px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>🎨 Buffered Canvas Drawing Demo</h1>
+    <div class="description">
+      <p>
+        Draw on the <strong>Host Canvas</strong> to see real-time synchronized drawing on the
+        <strong>Participant Canvas</strong>.
+      </p>
+      <p>Drawing events are batched using BufferedEventEmitter for the participant</p>
+    </div>
+
+    <div class="canvas-container">
+      <div class="canvas-section">
+        <div class="canvas-label host-label">🖱️ Host Canvas</div>
+        <canvas id="hostCanvas" width="400" height="300"></canvas>
+      </div>
+
+      <div class="canvas-section">
+        <div class="canvas-label participant-label">👥 Participant Canvas</div>
+        <canvas id="participantCanvas" width="400" height="300"></canvas>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="clearButton">🗑️ Clear Canvases</button>
+    </div>
+
+    <div class="status">
+      <div class="status-item">
+        <div class="status-indicator"></div>
+        <span>BufferedEventEmitter Active</span>
+      </div>
+      <div class="status-item">
+        <span id="batchInfo">Buffer: 10 points | Timeout: 100ms</span>
+      </div>
+    </div>
+
+    <div class="batch-info">
+      <p>Check browser console for detailed batching logs</p>
+    </div>
+
+    <script src="../../lib/bundle.umd.js"></script>
+    <script>
+      const hostCanvas = document.getElementById("hostCanvas");
+      const participantCanvas = document.getElementById("participantCanvas");
+      const hostCtx = hostCanvas.getContext("2d");
+      const participantCtx = participantCanvas.getContext("2d");
+
+      // Participant only drawing state
+      let participantState = {
+        lastPoint: null,
+        isDrawingActive: false,
+      };
+
+      // Host-only drawing state
+      let isDrawing = false;
+      let lastHostPoint = null;
+
+      const drawingEventEmitter = new BufferedEventEmitter();
+
+      drawingEventEmitter.on(
+        "drawingState",
+        (stateBatches) => {
+          console.log(`🔄 [PARTICIPANT] Received ${stateBatches.length} state updates`);
+
+          stateBatches.forEach((state, index) => {
+            console.log(`  📊 State ${index + 1}: ${state.type} - ${state.action}`);
+
+            if (state.type === "drawing" && state.action === "start") {
+              participantState.isDrawingActive = true;
+              participantState.lastPoint = null; // Reset for new stroke
+              console.log("  ✏️ [PARTICIPANT] Drawing session started");
+            } else if (state.type === "drawing" && state.action === "end") {
+              participantState.isDrawingActive = false;
+              participantState.lastPoint = null;
+              console.log("  🛑 [PARTICIPANT] Drawing session ended");
+            } else if (state.type === "canvas" && state.action === "clear") {
+              participantCtx.clearRect(0, 0, participantCanvas.width, participantCanvas.height);
+              participantState.lastPoint = null;
+              participantState.isDrawingActive = false;
+              console.log("  🗑️ [PARTICIPANT] Canvas cleared via state event");
+            }
+          });
+        },
+        {
+          buffered: true,
+          bufferCapacity: 5, // State changes need smaller buffer
+          bufferInactivityTimeout: 50, // Quick state updates
+        }
+      );
+
+      drawingEventEmitter.on(
+        "drawPoints",
+        (pointBatches) => {
+          console.log(`🎯 [PARTICIPANT] Received batch of ${pointBatches.length} drawing points`);
+
+          if (pointBatches.length === 0) {
+            console.log("📝 [PARTICIPANT] Empty batch received");
+            return;
+          }
+
+          // Replay the drawing sequence on participant canvas
+          participantCtx.beginPath();
+
+          // Start from last point or first point in batch
+          const startPoint = participantState.lastPoint || pointBatches[0];
+          participantCtx.moveTo(startPoint.x, startPoint.y);
+
+          // Draw lines connecting all points in the batch
+          pointBatches.forEach((point, index) => {
+            participantCtx.lineTo(point.x, point.y);
+            console.log(`  📍 Point ${index + 1}: (${point.x.toFixed(1)}, ${point.y.toFixed(1)})`);
+          });
+
+          participantCtx.strokeStyle = "#28a745"; // Green color for participant
+          participantCtx.lineWidth = 2;
+          participantCtx.lineCap = "round";
+          participantCtx.lineJoin = "round";
+          participantCtx.stroke();
+
+          // Update last participant point
+          participantState.lastPoint = pointBatches[pointBatches.length - 1];
+
+          console.log(`✅ [PARTICIPANT] Successfully drew ${pointBatches.length} connected points`);
+        },
+        {
+          buffered: true,
+          bufferCapacity: 10, // Collect up to 10 points before flushing
+          bufferInactivityTimeout: 100, // Or flush after 100ms of inactivity
+        }
+      );
+
+      // Get mouse position relative to canvas
+      function getCanvasMousePosition(canvas, event) {
+        const rect = canvas.getBoundingClientRect();
+        const clientX = event.clientX || (event.touches && event.touches[0].clientX);
+        const clientY = event.clientY || (event.touches && event.touches[0].clientY);
+
+        return {
+          x: clientX - rect.left,
+          y: clientY - rect.top,
+          timestamp: Date.now(),
+        };
+      }
+
+      // Host canvas drawing event listeners
+      hostCanvas.addEventListener("mousedown", (e) => {
+        isDrawing = true;
+        lastHostPoint = getCanvasMousePosition(hostCanvas, e);
+        drawingEventEmitter.emit("drawingState", {
+          type: "drawing",
+          action: "start",
+          timestamp: Date.now(),
+          position: lastHostPoint,
+        });
+        console.log("🖱️ [HOST] Started drawing at:", lastHostPoint);
+      });
+
+      hostCanvas.addEventListener("mousemove", (e) => {
+        if (!isDrawing) return;
+
+        const currentPoint = getCanvasMousePosition(hostCanvas, e);
+
+        // Draw immediately on host canvas
+        hostCtx.beginPath();
+        if (lastHostPoint) {
+          hostCtx.moveTo(lastHostPoint.x, lastHostPoint.y);
+        }
+        hostCtx.lineTo(currentPoint.x, currentPoint.y);
+        hostCtx.strokeStyle = "#007bff"; // Blue color for host
+        hostCtx.lineWidth = 2;
+        hostCtx.lineCap = "round";
+        hostCtx.lineJoin = "round";
+        hostCtx.stroke();
+
+        // Emit point for batched transmission to participant
+        drawingEventEmitter.emit("drawPoints", currentPoint);
+
+        lastHostPoint = currentPoint;
+      });
+
+      const stopDrawing = () => {
+        if (!isDrawing) return;
+
+        isDrawing = false;
+
+        drawingEventEmitter.emit("drawingState", {
+          type: "drawing",
+          action: "end",
+          timestamp: Date.now(),
+        });
+        console.log("🛑 [HOST] Stopped drawing, flushing remaining buffer...");
+
+        // Flush any remaining points in the buffer
+        drawingEventEmitter.flush("drawPoints");
+        drawingEventEmitter.flush("drawingState");
+
+        lastHostPoint = null;
+
+        console.log("💾 [HOST] Drawing session completed");
+      };
+
+      hostCanvas.addEventListener("mouseup", stopDrawing);
+      hostCanvas.addEventListener("mouseout", stopDrawing);
+
+      hostCanvas.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const mouseEvent = new MouseEvent("mousedown", {
+          clientX: touch.clientX,
+          clientY: touch.clientY,
+        });
+        hostCanvas.dispatchEvent(mouseEvent);
+      });
+
+      hostCanvas.addEventListener("touchmove", (e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const mouseEvent = new MouseEvent("mousemove", {
+          clientX: touch.clientX,
+          clientY: touch.clientY,
+        });
+        hostCanvas.dispatchEvent(mouseEvent);
+      });
+
+      hostCanvas.addEventListener("touchend", (e) => {
+        e.preventDefault();
+        const mouseEvent = new MouseEvent("mouseup", {});
+        hostCanvas.dispatchEvent(mouseEvent);
+      });
+
+      // Prevent participant canvas interactions
+      participantCanvas.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        console.log("⚠️ [PARTICIPANT] Drawing disabled - Host only mode");
+      });
+
+      participantCanvas.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        console.log("⚠️ [PARTICIPANT] Touch drawing disabled - Host only mode");
+      });
+
+      const clearButton = document.getElementById("clearButton");
+      clearButton.addEventListener("click", () => {
+        hostCtx.clearRect(0, 0, hostCanvas.width, hostCanvas.height);
+        participantCtx.clearRect(0, 0, participantCanvas.width, participantCanvas.height);
+
+        // Reset drawing state
+        lastHostPoint = null;
+        isDrawing = false;
+        // Emit clear state event for participant
+        drawingEventEmitter.emit("drawingState", {
+          type: "canvas",
+          action: "clear",
+          timestamp: Date.now(),
+        });
+
+        drawingEventEmitter.flush("drawingState");
+
+        console.log("🗑️ [SYSTEM] Both canvases cleared");
+        console.log("📊 [SYSTEM] Drawing state reset");
+      });
+
+      console.log("🚀 [SYSTEM] Buffered Canvas Drawing Demo initialized");
+      console.log("📋 [CONFIG] Buffer capacity: 10");
+      console.log("⏱️ [CONFIG] Inactivity timeout: 100ms");
+      console.log("🎨 [READY] Start drawing on the host canvas!");
+    </script>
+  </body>
+</html>
