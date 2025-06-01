@@ -20,9 +20,9 @@ While standard event emitters are good for basic publish-subscribe patterns, thi
 - Typescript support
 
 
-### Key Capabilities in Detail <!-- omit in toc -->
+### Key Features in Detail <!-- omit in toc -->
 
-**Event Buffering**: Handle rapid sequences of events by configuring listeners to buffer incoming data. Instead of invoking the listener for every single event emission, data is collected in a temporary buffer with optional automatic flushing. The listener is then invoked with the entire buffer as a batch once a configurable capacity is reached. This is valuable for optimizing performance when dealing with processing events in chunks. You can set a global default buffer capacity or customize it per listener
+**Event Buffering**: Handle rapid events by configuring listeners to buffer incoming data. Instead of invoking the listener for every single event emission, data is collected in a temporary buffer with optional automatic flushing. The listener is then invoked with the entire buffer as a batch once a configurable capacity is reached. This is valuable for optimizing performance when dealing with processing events in chunks. You can set a global default buffer capacity or customize it per listener
 
 **Flow Control with Pause and Resume**: Gain fine-grained control over event emissions. You can pause emissions for the entire emitter instance or specifically for individual events. When paused, subsequent emit calls will not immediately invoke listeners.
 
@@ -211,14 +211,15 @@ Configure if event listeners registered on this instance will received buffered 
 Type: `number`\
 Default: `5`
 
+Configure buffer capacity. Default capacity of 5 means event listener will receive event data every 5 emissions.
+****
 ### `bufferInactivityTimeout?` <!-- omit in toc -->
 
-Type: number
-Default: 0 (ms)
+Type: `number` \
+Default: `0` (ms)
 
 Configure a default inactivity timeout for buffered listeners registered on this instance. If a buffered listener's bucket contains events and no new events are emitted for its event name within this duration, the listener will be automatically flushed with the current buffer content. A value of 0 disables the inactivity timeout at the instance level. This setting can be overridden per listener via its options.
 
-Configure buffer capacity. Default capacity of 5 means event listener will receive event data every 5 emissions.
 
 #### `logger` <!-- omit in toc -->
 
