@@ -19,24 +19,22 @@ While standard event emitters are good for basic publish-subscribe patterns, thi
 - Based on [node events api](https://nodejs.org/api/events.html)
 - Typescript support
 
+---
 
 ### Key Features in Detail <!-- omit in toc -->
 
-**Event Buffering**: Handle rapid events by configuring listeners to buffer incoming data. Instead of invoking the listener for every single event emission, data is collected in a temporary buffer with optional automatic flushing. The listener is then invoked with the entire buffer as a batch once a configurable capacity is reached. This is valuable for optimizing performance when dealing with processing events in chunks. You can set a global default buffer capacity or customize it per listener
+**Event Buffering**: Handle rapid events by configuring listeners to buffer incoming data. Instead of invoking the listener for every single event emission, data is collected in a temporary buffer with optional automatic flushing. The listener is then invoked with the entire buffer as a batch once the buffer capacity is reached. This can be helpful for optimizing performance when dealing with processing events in chunks. You can set a global default buffer capacity or customize it per listener
 
 **Flow Control with Pause and Resume**: Gain fine-grained control over event emissions. You can pause emissions for the entire emitter instance or specifically for individual events. When paused, subsequent emit calls will not immediately invoke listeners.
 
-**Configurable Event Queueing**: When emissions are paused, you have the option to either swallow (discard) incoming events or queue them up. If queued, events are stored in order. When you resume, the queued events are processed sequentially, either synchronously or asynchronously with a configurable interval, ensuring no data is lost during temporary pauses and allowing systems to catch up gracefully.
+**Event Queueing**: When emissions are paused, you have the option to either swallow (discard) incoming events or queue them up. If queued, events are stored in order. When you resume, the queued events are processed sequentially, either synchronously or asynchronously with a configurable interval, ensuring no data is lost during temporary pauses and allowing systems to catch up gracefully.
 
-**Optional Built-in Caching**: Automatically cache recent event data that has been emitted. The cache size is configurable, making it easy to access the recent event data.
+**Caching**: Automatically cache recent event data that has been emitted. The cache size is configurable, making it easy to access the recent event data.
 
-**Event Controllers for Listener Grouping**: Manage groups of related listeners using EventController instances. Attach multiple listeners across different event names or with different options to a single controller. Perform actions like flushing all associated buffered events or removing all associated listeners with a single call on the controller instance.
+**Event Controllers for Listener Grouping**: Manage groups of related listeners using `EventController` instances. Attach multiple listeners across different event names or with different options to a single controller. Perform actions like flushing all associated buffered events or removing all associated listeners with a single call on the controller instance.
 
-**Optional Logging for Debugging**: Integrate optional logging to gain visibility into the emitter's activity. Easily trace when events are emitted, when listeners are added (on/once), and when listeners are removed (off). Logging can be enabled selectively for emit, on, and off actions.
+**Optional Logging**: Easily trace when events are emitted, when listeners are added (on/once), and when listeners are removed (off). Logging can be enabled selectively for emit, on, and off actions.
 
-**Lightweight**: Size is approximately 6.6kb minified, minimizing its impact on your project's overall bundle size.
-
-**Compatibile**: Works seamlessly in both Node.js environments and modern web browsers.
 
 ---
 
