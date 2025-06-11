@@ -653,6 +653,7 @@ describe("fn#getCache()", function () {
       expect(callsBar.at(-1)).toStrictEqual(emitter.getCache("bar").at(-1));
       callsBar.push(arg);
     };
+    emitter.emit("foo", "f-0"); // event data emitted before any listener registeration is not cached
     emitter.on("foo", listenerOne);
     emitter.on("bar", listenerTwo, { buffered: true, bufferCapacity: 3 });
     emitter.emit("foo", "f-1");
