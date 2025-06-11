@@ -12,7 +12,8 @@
   ],
   "exports": {
     "require": "./lib/bundle.umd.js",
-    "import": "./lib/bundle.esm.mjs"
+    "import": "./lib/bundle.esm.mjs",
+    "types": "./lib/types/index.d.ts"
   },
   "scripts": {
     "test": "jest test/bufferedEventEmitter.test.ts",
