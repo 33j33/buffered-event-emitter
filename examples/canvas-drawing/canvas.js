@@ -18,24 +18,24 @@ const drawingEventEmitter = new BufferedEventEmitter();
 drawingEventEmitter.on(
   "drawingState",
   (stateBatches) => {
-    console.log(`🔄 [PARTICIPANT] Received ${stateBatches.length} state updates`);
+    console.log(`[PARTICIPANT] Received ${stateBatches.length} state updates`);
 
     stateBatches.forEach((state, index) => {
-      console.log(`  📊 State ${index + 1}: ${state.type} - ${state.action}`);
+      console.log(`State ${index + 1}: ${state.type} - ${state.action}`);
 
       if (state.type === "drawing" && state.action === "start") {
         participantState.isDrawingActive = true;
         participantState.lastPoint = null; // Reset for new stroke
-        console.log("  ✏️ [PARTICIPANT] Drawing session started");
+        console.log("[PARTICIPANT] Drawing session started");
       } else if (state.type === "drawing" && state.action === "end") {
         participantState.isDrawingActive = false;
         participantState.lastPoint = null;
-        console.log("  🛑 [PARTICIPANT] Drawing session ended");
+        console.log("[PARTICIPANT] Drawing session ended");
       } else if (state.type === "canvas" && state.action === "clear") {
         participantCtx.clearRect(0, 0, participantCanvas.width, participantCanvas.height);
         participantState.lastPoint = null;
         participantState.isDrawingActive = false;
-        console.log("  🗑️ [PARTICIPANT] Canvas cleared via state event");
+        console.log("[PARTICIPANT] Canvas cleared via state event");
       }
     });
   },
@@ -49,10 +49,10 @@ drawingEventEmitter.on(
 drawingEventEmitter.on(
   "drawPoints",
   (pointBatches) => {
-    console.log(`🎯 [PARTICIPANT] Received batch of ${pointBatches.length} drawing points`);
+    console.log(`[PARTICIPANT] Received batch of ${pointBatches.length} drawing points`);
 
     if (pointBatches.length === 0) {
-      console.log("📝 [PARTICIPANT] Empty batch received");
+      console.log("[PARTICIPANT] Empty batch received");
       return;
     }
 
@@ -66,7 +66,7 @@ drawingEventEmitter.on(
     // Draw lines connecting all points in the batch
     pointBatches.forEach((point, index) => {
       participantCtx.lineTo(point.x, point.y);
-      console.log(`  📍 Point ${index + 1}: (${point.x.toFixed(1)}, ${point.y.toFixed(1)})`);
+      console.log(`Point ${index + 1}: (${point.x.toFixed(1)}, ${point.y.toFixed(1)})`);
     });
 
     participantCtx.strokeStyle = "#28a745"; // Green color for participant
@@ -78,7 +78,7 @@ drawingEventEmitter.on(
     // Update last participant point
     participantState.lastPoint = pointBatches[pointBatches.length - 1];
 
-    console.log(`✅ [PARTICIPANT] Successfully drew ${pointBatches.length} connected points`);
+    console.log(`[PARTICIPANT] Successfully drew ${pointBatches.length} connected points`);
   },
   {
     buffered: true,
@@ -110,7 +110,7 @@ hostCanvas.addEventListener("mousedown", (e) => {
     timestamp: Date.now(),
     position: lastHostPoint,
   });
-  console.log("🖱️ [HOST] Started drawing at:", lastHostPoint);
+  console.log("[HOST] Started drawing at:", lastHostPoint);
 });
 
 hostCanvas.addEventListener("mousemove", (e) => {
@@ -146,7 +146,7 @@ const stopDrawing = () => {
     action: "end",
     timestamp: Date.now(),
   });
-  console.log("🛑 [HOST] Stopped drawing, flushing remaining buffer...");
+  console.log("HOST] Stopped drawing, flushing remaining buffer...");
 
   // Flush any remaining points in the buffer
   drawingEventEmitter.flush("drawPoints");
@@ -154,7 +154,7 @@ const stopDrawing = () => {
 
   lastHostPoint = null;
 
-  console.log("💾 [HOST] Drawing session completed");
+  console.log("[HOST] Drawing session completed");
 };
 
 hostCanvas.addEventListener("mouseup", stopDrawing);
@@ -214,11 +214,11 @@ clearButton.addEventListener("click", () => {
 
   drawingEventEmitter.flush("drawingState");
 
-  console.log("🗑️ [SYSTEM] Both canvases cleared");
-  console.log("📊 [SYSTEM] Drawing state reset");
+  console.log("[SYSTEM] Both canvases cleared");
+  console.log("[SYSTEM] Drawing state reset");
 });
 
-console.log("🚀 [SYSTEM] Buffered Canvas Drawing Demo initialized");
-console.log("📋 [CONFIG] Buffer capacity: 10");
-console.log("⏱️ [CONFIG] Inactivity timeout: 100ms");
-console.log("🎨 [READY] Start drawing on the host canvas!");
+console.log("[SYSTEM] Buffered Canvas Drawing Demo initialized");
+console.log("[CONFIG] Buffer capacity: 10");
+console.log("[CONFIG] Inactivity timeout: 100ms");
+console.log("[READY] Start drawing on the host canvas!");

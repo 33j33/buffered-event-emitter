@@ -1,6 +1,6 @@
 {
   "name": "buffered-event-emitter",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Event emitter designed for handling rapid events - supports buffering, queueing, pausing, resuming events and caching of event data",
   "main": "lib/bundle.esm.mjs",
   "module": "lib/bundle.umd.js",
@@ -11,13 +11,14 @@
     "lib/bundle*"
   ],
   "exports": {
+    "types": "./lib/types/index.d.ts",
     "require": "./lib/bundle.umd.js",
     "import": "./lib/bundle.esm.mjs"
   },
   "scripts": {
     "test": "jest test/bufferedEventEmitter.test.ts",
-    "build:esm": "tsc --outDir lib/esm",
-    "build:umd": "tsc --module umd --outDir lib/umd",
+    "build:esm": "tsc --project tsconfig.build.json --outDir lib/esm",
+    "build:umd": "tsc --project tsconfig.build.json --module umd --outDir lib/umd",
     "build:bundle": "rollup -c",
     "watch": "run-p \"build:esm -- --watch\" \"build:bundle -- --watch --waitForBundleInput\"",
     "build": "npm run build:esm && npm run build:bundle"
