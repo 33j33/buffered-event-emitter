@@ -7,7 +7,7 @@
 		"preview": "vite preview"
 	},
 	"dependencies": {
-		"buffered-event-emitter": "github:33j33/buffered-event-emitter#develop",
+		"buffered-event-emitter": "github:33j33/buffered-event-emitter#main",
 		"preact": "^10.25.3"
 	},
 	"devDependencies": {
