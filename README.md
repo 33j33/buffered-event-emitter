@@ -27,7 +27,7 @@ While standard event emitters are good for basic publish-subscribe patterns, thi
 
 **Flow Control with Pause and Resume**: Gain fine-grained control over event emissions. You can pause emissions for the entire emitter instance or specifically for individual events. When paused, subsequent emit calls will not immediately invoke listeners.
 
-**Event Queueing**: When emissions are paused, you have the option to either swallow (discard) incoming events or queue them up. If queued, events are stored in order. When you resume, the queued events are processed sequentially, either synchronously or asynchronously with a configurable interval, ensuring no data is lost during temporary pauses and allowing systems to catch up gracefully.
+**Event Queueing**: When emissions are paused, you have the option to either swallow (discard) incoming events or queue them up. If queued, events are stored in order. When you resume, the queued events are processed sequentially, either synchronously or asynchronously with a configurable interval, ensuring no data is lost during temporary pauses.
 
 **Caching**: Automatically cache recent event data that has been emitted. The cache size is configurable, making it easy to access the recent event data.
 
