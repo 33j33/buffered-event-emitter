@@ -14,7 +14,7 @@ While standard event emitters are good for basic publish-subscribe patterns, thi
 
 - Buffer events with configurable buffer capacity. 
 - Pause and resume event emission.
-- Tiny, 6.6kb minified.
+- Tiny, 2.3kb minzipped.
 - Works for both nodejs and browser.
 - Based on [node events api](https://nodejs.org/api/events.html)
 - Typescript support
